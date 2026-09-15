@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 
-// UPDATE STUDENT
+// UPDATE MENTOR
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -21,7 +21,6 @@ export async function PUT(
       role,
     };
 
-    // Password sirf tab update hoga jab user naya password dega
     if (password && password.trim() !== "") {
       updateData.password = password;
     }
@@ -30,7 +29,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      message: "Student Updated Successfully",
+      message: "Mentor Updated Successfully",
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -43,7 +42,7 @@ export async function PUT(
   }
 }
 
-// DELETE STUDENT
+// DELETE MENTOR
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -57,7 +56,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Student Deleted Successfully",
+      message: "Mentor Deleted Successfully",
     });
   } catch (error: any) {
     return NextResponse.json(

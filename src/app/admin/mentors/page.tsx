@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Navbar from "@/components/dashboard/Navbar";
 
-interface Student {
+interface Mentor {
   _id: string;
   name: string;
   email: string;
   role: string;
 }
 
-export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+export default function MentorsPage() {
+  const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
@@ -20,47 +20,63 @@ export default function StudentsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student");
+  const [role, setRole] = useState("mentor");
 
   const [editingId, setEditingId] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    fetchStudents();
+    fetchMentors();
   }, []);
 
-  async function fetchStudents() {
-    try {
-      const res = await fetch("/api/students");
-      const data = await res.json();
+async function fetchMentors() {
+  try {
+    setLoading(true);
 
-      if (data.success) {
-        setStudents(data.students);
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
+    const url = window.location.origin + "/api/mentors";
+
+    console.log("Fetching:", url);
+
+    const res = await fetch(url, {
+      cache: "no-store",
+    });
+
+    console.log("Status:", res.status);
+
+    const data = await res.json();
+
+    console.log("Data:", data);
+
+    if (data.success) {
+      setMentors(data.mentors || []);
+    } else {
+      alert("API Error: " + data.message);
     }
+  } catch (error: any) {
+    console.log("ERROR:", error);
+    alert("Mentor Fetch Error: " + error.message);
+  } finally {
+    setLoading(false);
   }
+}
 
-  async function deleteStudent(id: string) {
+  async function deleteMentor(id: string) {
     const confirmDelete = confirm(
-      "Are you sure you want to delete this student?"
+      "Are you sure you want to delete this mentor?"
     );
 
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/students/${id}`, {
+      const res = await fetch(`/api/mentors/${id}`, {
         method: "DELETE",
       });
 
       const data = await res.json();
 
       if (data.success) {
-        alert("Student Deleted Successfully");
-        fetchStudents();
+        alert("Mentor Deleted Successfully");
+        fetchMentors();
       } else {
         alert(data.message);
       }
@@ -69,22 +85,22 @@ export default function StudentsPage() {
     }
   }
 
-  function editStudent(student: Student) {
-    setEditingId(student._id);
-    setName(student.name);
-    setEmail(student.email);
-    setRole(student.role);
+  function editMentor(mentor: Mentor) {
+    setEditingId(mentor._id);
+    setName(mentor.name);
+    setEmail(mentor.email);
+    setRole(mentor.role);
 
     setPassword("");
     setIsEditing(true);
     setOpen(true);
   }
 
-  async function addStudent(e: React.FormEvent) {
+  async function addMentor(e: React.FormEvent) {
     e.preventDefault();
 
     const url = isEditing
-      ? `/api/students/${editingId}`
+      ? `/api/mentors/${editingId}`
       : "/api/register";
 
     const method = isEditing ? "PUT" : "POST";
@@ -107,8 +123,8 @@ export default function StudentsPage() {
     if (data.success) {
       alert(
         isEditing
-          ? "Student Updated Successfully"
-          : "Student Added Successfully"
+          ? "Mentor Updated Successfully"
+          : "Mentor Added Successfully"
       );
 
       setOpen(false);
@@ -116,12 +132,12 @@ export default function StudentsPage() {
       setName("");
       setEmail("");
       setPassword("");
-      setRole("student");
+      setRole("mentor");
 
       setEditingId("");
       setIsEditing(false);
 
-      fetchStudents();
+      fetchMentors();
     } else {
       alert(data.message);
     }
@@ -136,7 +152,7 @@ export default function StudentsPage() {
         <main className="p-8">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">
-              Students Management
+              Mentors Management
             </h1>
 
             <button
@@ -146,12 +162,12 @@ export default function StudentsPage() {
                 setName("");
                 setEmail("");
                 setPassword("");
-                setRole("student");
+                setRole("mentor");
                 setOpen(true);
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
             >
-              + Add Student
+              + Add Mentor
             </button>
           </div>
 
@@ -160,11 +176,11 @@ export default function StudentsPage() {
               <div className="bg-white rounded-xl shadow-lg w-[450px] p-6">
 
                 <h2 className="text-2xl font-bold mb-6">
-                  {isEditing ? "Edit Student" : "Add Student"}
+                  {isEditing ? "Edit Mentor" : "Add Mentor"}
                 </h2>
 
                 <form
-                  onSubmit={addStudent}
+                  onSubmit={addMentor}
                   className="space-y-4"
                 >
                   <input
@@ -203,8 +219,8 @@ export default function StudentsPage() {
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full border rounded-lg p-3"
                   >
-                    <option value="student">Student</option>
                     <option value="mentor">Mentor</option>
+                    <option value="student">Student</option>
                     <option value="admin">Admin</option>
                   </select>
 
@@ -230,6 +246,7 @@ export default function StudentsPage() {
                     </button>
 
                   </div>
+
                 </form>
               </div>
             </div>
@@ -240,14 +257,12 @@ export default function StudentsPage() {
             <table className="w-full">
 
               <thead className="bg-gray-100">
-
                 <tr>
                   <th className="p-4 text-left">Name</th>
                   <th className="p-4 text-left">Email</th>
                   <th className="p-4 text-left">Role</th>
                   <th className="p-4 text-left">Action</th>
                 </tr>
-
               </thead>
 
               <tbody>
@@ -258,41 +273,41 @@ export default function StudentsPage() {
                       Loading...
                     </td>
                   </tr>
-                ) : students.length === 0 ? (
+                ) : mentors.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="p-6 text-center">
-                      No Students Found
+                      No Mentors Found
                     </td>
                   </tr>
                 ) : (
-                  students.map((student) => (
+                  mentors.map((mentor) => (
                     <tr
-                      key={student._id}
+                      key={mentor._id}
                       className="border-t hover:bg-gray-50"
                     >
                       <td className="p-4">
-                        {student.name}
+                        {mentor.name}
                       </td>
 
                       <td className="p-4">
-                        {student.email}
+                        {mentor.email}
                       </td>
 
                       <td className="p-4 capitalize">
-                        {student.role}
+                        {mentor.role}
                       </td>
 
                       <td className="p-4">
 
                         <button
-                          onClick={() => editStudent(student)}
+                          onClick={() => editMentor(mentor)}
                           className="text-blue-600 hover:text-blue-800 mr-4"
                         >
                           Edit
                         </button>
 
                         <button
-                          onClick={() => deleteStudent(student._id)}
+                          onClick={() => deleteMentor(mentor._id)}
                           className="text-red-600 hover:text-red-800"
                         >
                           Delete
