@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
@@ -12,8 +12,17 @@ interface Student {
 
 interface Assignment {
   _id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+}
+
+interface Submission {
+  _id: string;
+  assignment: Assignment;
   student: Student;
-  assignedAt: string;
+  answer: string;
+  submittedAt: string;
 }
 
 interface Meeting {
@@ -25,16 +34,19 @@ interface Meeting {
 }
 
 export default function MentorDashboard() {
-  const [students, setStudents] = useState<Assignment[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [meetingLoading, setMeetingLoading] = useState(true);
+  const [submissionLoading, setSubmissionLoading] = useState(true);
   const [deleting, setDeleting] = useState("");
 
   useEffect(() => {
     loadStudents();
     loadMeetings();
+    loadSubmissions();
   }, []);
 
   async function loadStudents() {
@@ -64,6 +76,21 @@ export default function MentorDashboard() {
       console.log(error);
     } finally {
       setMeetingLoading(false);
+    }
+  }
+
+  async function loadSubmissions() {
+    try {
+      const res = await fetch("/api/submissions");
+      const data = await res.json();
+
+      if (data.success) {
+        setSubmissions(data.submissions || []);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setSubmissionLoading(false);
     }
   }
 
@@ -116,7 +143,6 @@ export default function MentorDashboard() {
         <Navbar />
 
         <main className="p-8">
-
           <h1 className="text-3xl font-bold mb-8">
             👨‍🏫 Mentor Dashboard
           </h1>
@@ -156,11 +182,9 @@ export default function MentorDashboard() {
                       <th className="p-4 text-left">
                         Student Name
                       </th>
-
                       <th className="p-4 text-left">
                         Email
                       </th>
-
                       <th className="p-4 text-left">
                         Assigned Date
                       </th>
@@ -194,8 +218,8 @@ export default function MentorDashboard() {
             )}
           </div>
 
-          {/* My Meetings */}
-          <div className="bg-white rounded-xl shadow overflow-hidden">
+          {/* Meetings */}
+          <div className="bg-white rounded-xl shadow overflow-hidden mb-8">
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
                 📅 My Meetings
@@ -218,19 +242,15 @@ export default function MentorDashboard() {
                       <th className="p-4 text-left">
                         Meeting
                       </th>
-
                       <th className="p-4 text-left">
                         Students
                       </th>
-
                       <th className="p-4 text-left">
                         Date
                       </th>
-
                       <th className="p-4 text-left">
                         Time
                       </th>
-
                       <th className="p-4 text-left">
                         Action
                       </th>
@@ -291,7 +311,9 @@ export default function MentorDashboard() {
                             onClick={() =>
                               deleteMeeting(meeting._id)
                             }
-                            disabled={deleting === meeting._id}
+                            disabled={
+                              deleting === meeting._id
+                            }
                             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
                           >
                             {deleting === meeting._id
@@ -307,6 +329,98 @@ export default function MentorDashboard() {
             )}
           </div>
 
+          {/* Student Submissions */}
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-semibold">
+                📥 Student Submissions
+              </h2>
+            </div>
+
+            {submissionLoading ? (
+              <div className="p-6 text-center">
+                Loading submissions...
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                No submissions yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="p-4 text-left">
+                        Assignment
+                      </th>
+
+                      <th className="p-4 text-left">
+                        Student
+                      </th>
+
+                      <th className="p-4 text-left">
+                        Answer
+                      </th>
+
+                      <th className="p-4 text-left">
+                        Submitted Date
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {submissions.map((submission) => (
+                      <tr
+                        key={submission._id}
+                        className="border-t"
+                      >
+                        <td className="p-4">
+                          <p className="font-semibold">
+                            {submission.assignment?.title}
+                          </p>
+
+                          <p className="text-sm text-gray-500">
+                            {submission.assignment?.description}
+                          </p>
+                        </td>
+
+                        <td className="p-4">
+                          <p className="font-medium">
+                            {submission.student?.name}
+                          </p>
+
+                          <p className="text-sm text-gray-500">
+                            {submission.student?.email}
+                          </p>
+                        </td>
+
+                        <td className="p-4">
+                          <div className="max-w-md whitespace-pre-wrap">
+                            {submission.answer}
+                          </div>
+                        </td>
+
+                        <td className="p-4">
+                          {new Date(
+                            submission.submittedAt
+                          ).toLocaleDateString()}
+
+                          <p className="text-sm text-gray-500">
+                            {new Date(
+                              submission.submittedAt
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>
