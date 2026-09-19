@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { signOut, getSession } from "next-auth/react";
@@ -24,7 +24,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="flex justify-between items-center bg-white shadow px-6 py-4">
+    <header className="flex justify-between items-center bg-white shadow px-6 py-4 pl-20 md:pl-6">
       <h2 className="text-2xl font-bold">
         {title}
       </h2>
