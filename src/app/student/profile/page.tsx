@@ -1,0 +1,172 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type User = {
+  name: string;
+  email: string;
+  mobile?: string;
+  role: string;
+};
+
+export default function StudentProfile() {
+  const [user, setUser] = useState<User | null>(null);
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const res = await fetch("/api/profile");
+        const data = await res.json();
+
+        if (data.success) {
+          setUser(data.user);
+          setName(data.user.name || "");
+          setMobile(data.user.mobile || "");
+        } else {
+          setMessage(data.message || "Failed to load profile");
+        }
+      } catch {
+        setMessage("Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfile();
+  }, []);
+
+  async function updateProfile(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          mobile,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setUser(data.user);
+        setMessage("Profile updated successfully!");
+      } else {
+        setMessage(data.message || "Update failed");
+      }
+    } catch {
+      setMessage("Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <p className="text-gray-500">Loading profile...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow p-6">
+        <h1 className="text-2xl font-bold mb-6">
+          My Profile
+        </h1>
+
+        {message && (
+          <div className="mb-5 p-3 rounded-lg bg-blue-50 text-blue-700">
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={updateProfile} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Full Name
+            </label>
+
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Email
+            </label>
+
+            <input
+              type="email"
+              value={user?.email || ""}
+              disabled
+              className="w-full border rounded-lg px-4 py-3 bg-gray-100 text-gray-500"
+            />
+
+            <p className="text-xs text-gray-500 mt-1">
+              Email cannot be changed.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Mobile Number
+            </label>
+
+            <input
+              type="tel"
+              value={mobile}
+              onChange={(e) =>
+                setMobile(
+                  e.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 10)
+                )
+              }
+              placeholder="Enter 10 digit mobile number"
+              className="w-full border rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Role
+            </label>
+
+            <input
+              type="text"
+              value={user?.role || "student"}
+              disabled
+              className="w-full border rounded-lg px-4 py-3 bg-gray-100 text-gray-500 capitalize"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-lg"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

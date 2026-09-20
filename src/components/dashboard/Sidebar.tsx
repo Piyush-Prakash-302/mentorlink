@@ -12,6 +12,7 @@ import {
   Calendar,
   Megaphone,
   ClipboardList,
+  User,
   LogOut,
   Menu,
   X,
@@ -84,6 +85,18 @@ export default function Sidebar() {
             <LayoutDashboard size={20} />
             Dashboard
           </Link>
+
+          {/* Student Menu */}
+          {role === "student" && (
+            <Link
+              href="/student/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-700 transition"
+            >
+              <User size={20} />
+              My Profile
+            </Link>
+          )}
 
           {/* Admin Menu */}
           {role === "admin" && (
