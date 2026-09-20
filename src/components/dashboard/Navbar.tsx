@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signOut, getSession } from "next-auth/react";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
 
 type Notification = {
   _id: string;
@@ -15,23 +15,27 @@ type Notification = {
 
 export default function Navbar() {
   const [title, setTitle] = useState("Dashboard");
-
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Load user role
   useEffect(() => {
     async function loadRole() {
-      const session = await getSession();
-      const role = (session?.user as any)?.role;
+      try {
+        const session = await getSession();
+        const role = (session?.user as any)?.role;
 
-      if (role === "admin") {
-        setTitle("Admin Dashboard");
-      } else if (role === "mentor") {
-        setTitle("Mentor Dashboard");
-      } else if (role === "student") {
-        setTitle("Student Dashboard");
+        if (role === "admin") {
+          setTitle("Admin Dashboard");
+        } else if (role === "mentor") {
+          setTitle("Mentor Dashboard");
+        } else if (role === "student") {
+          setTitle("Student Dashboard");
+        }
+      } catch (error) {
+        console.log("Error loading session:", error);
       }
     }
 
@@ -39,32 +43,37 @@ export default function Navbar() {
   }, []);
 
   // Load notifications
-  useEffect(() => {
-    async function loadNotifications() {
-      try {
-        const res = await fetch("/api/notifications");
-        const data = await res.json();
+  async function loadNotifications() {
+    try {
+      const res = await fetch("/api/notifications", {
+        cache: "no-store",
+      });
 
-        if (data.success) {
-          setNotifications(data.notifications);
-          setUnreadCount(data.unreadCount);
-        }
-      } catch (error) {
-        console.log("Error loading notifications:", error);
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (data.success) {
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
       }
+    } catch (error) {
+      console.log("Error loading notifications:", error);
     }
+  }
 
+  useEffect(() => {
     loadNotifications();
 
-    // Refresh every 10 seconds
+    // Refresh notifications every 10 seconds
     const interval = setInterval(loadNotifications, 10000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Time ago function
+  // Time ago
   function getTimeAgo(date: string) {
-    const now = new Date().getTime();
+    const now = Date.now();
     const notificationTime = new Date(date).getTime();
 
     const seconds = Math.floor(
@@ -99,7 +108,16 @@ export default function Navbar() {
       } ago`;
     }
 
-    return new Date(date).toLocaleDateString();
+    return new Date(date).toLocaleDateString("en-IN");
+  }
+
+  // Notification icon
+  function getNotificationIcon(type: string) {
+    if (type === "meeting") return "📅";
+    if (type === "assignment") return "📝";
+    if (type === "announcement") return "📢";
+
+    return "🔔";
   }
 
   // Mark single notification as read
@@ -145,6 +163,8 @@ export default function Navbar() {
   async function markAllAsRead() {
     if (unreadCount === 0) return;
 
+    setLoading(true);
+
     try {
       const res = await fetch("/api/notifications", {
         method: "PATCH",
@@ -173,11 +193,14 @@ export default function Navbar() {
         "Error marking all notifications:",
         error
       );
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <header className="flex justify-between items-center bg-white shadow px-6 py-4 pl-20 md:pl-6">
+      
       {/* Dashboard Title */}
       <h2 className="text-2xl font-bold">
         {title}
@@ -193,7 +216,8 @@ export default function Navbar() {
                 !showNotifications
               )
             }
-            className="relative p-2 rounded-lg hover:bg-gray-100"
+            className="relative p-2 rounded-lg hover:bg-gray-100 transition"
+            aria-label="Notifications"
           >
             <Bell size={24} />
 
@@ -209,83 +233,107 @@ export default function Navbar() {
 
           {/* Notification Panel */}
           {showNotifications && (
-            <div className="absolute right-0 top-12 w-80 max-w-[90vw] bg-white rounded-xl shadow-xl border z-50">
+            <div className="absolute right-0 top-12 w-80 sm:w-96 max-w-[90vw] bg-white rounded-xl shadow-xl border z-50">
 
               {/* Header */}
-              <div className="p-4 border-b flex items-center justify-between gap-3">
-                <h3 className="font-semibold text-lg">
-                  Notifications
-                </h3>
+              <div className="p-4 border-b flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    Notifications
+                  </h3>
 
-                {unreadCount > 0 && (
+                  {unreadCount > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {unreadCount} unread notification
+                      {unreadCount > 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      disabled={loading}
+                      className="text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-50"
+                    >
+                      {loading
+                        ? "Updating..."
+                        : "Mark all as read"}
+                    </button>
+                  )}
+
                   <button
-                    onClick={markAllAsRead}
-                    className="text-blue-600 hover:text-blue-700 text-xs font-semibold whitespace-nowrap"
+                    onClick={() =>
+                      setShowNotifications(false)
+                    }
+                    className="p-1 rounded hover:bg-gray-100"
+                    aria-label="Close notifications"
                   >
-                    Mark all as read
+                    <X size={18} />
                   </button>
-                )}
+                </div>
               </div>
 
               {/* Notification List */}
               <div className="max-h-80 overflow-y-auto">
 
-                {/* No Notifications */}
                 {notifications.length === 0 ? (
-                  <p className="p-5 text-gray-500 text-sm text-center">
-                    No notifications
-                  </p>
-                ) : (
+                  <div className="p-8 text-center">
+                    <Bell
+                      size={32}
+                      className="mx-auto text-gray-300 mb-2"
+                    />
 
+                    <p className="text-gray-500 text-sm">
+                      No notifications
+                    </p>
+                  </div>
+                ) : (
                   notifications.map(
                     (notification) => (
                       <button
                         key={notification._id}
-                        onClick={() =>
-                          !notification.isRead &&
-                          markAsRead(
-                            notification._id
-                          )
-                        }
-                        className={`w-full text-left p-4 border-b hover:bg-gray-50 ${
+                        onClick={() => {
+                          if (!notification.isRead) {
+                            markAsRead(
+                              notification._id
+                            );
+                          }
+                        }}
+                        className={`w-full text-left p-4 border-b hover:bg-gray-50 transition ${
                           !notification.isRead
                             ? "bg-blue-50"
                             : "bg-white"
                         }`}
                       >
-
                         <div className="flex items-start gap-3">
 
-                          {/* Notification Icon */}
+                          {/* Icon */}
                           <span className="text-xl">
-                            {notification.type ===
-                            "meeting"
-                              ? "📅"
-                              : notification.type ===
-                                "assignment"
-                              ? "📝"
-                              : notification.type ===
-                                "announcement"
-                              ? "📢"
-                              : "🔔"}
+                            {getNotificationIcon(
+                              notification.type
+                            )}
                           </span>
 
-                          {/* Notification Content */}
-                          <div className="flex-1">
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
 
-                            {/* Title */}
-                            <p className="font-semibold text-sm">
-                              {notification.title}
-                            </p>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-semibold text-sm">
+                                {notification.title}
+                              </p>
 
-                            {/* Message */}
+                              {!notification.isRead && (
+                                <span className="w-2 h-2 bg-blue-600 rounded-full mt-1.5 flex-shrink-0" />
+                              )}
+                            </div>
+
                             <p className="text-gray-600 text-sm mt-1">
                               {notification.message}
                             </p>
 
-                            {/* Time + New */}
                             <div className="flex items-center justify-between mt-2">
-
                               <p className="text-gray-400 text-xs">
                                 {getTimeAgo(
                                   notification.createdAt
@@ -297,17 +345,14 @@ export default function Navbar() {
                                   New
                                 </p>
                               )}
-
                             </div>
 
                           </div>
                         </div>
-
                       </button>
                     )
                   )
                 )}
-
               </div>
             </div>
           )}
@@ -320,7 +365,7 @@ export default function Navbar() {
               callbackUrl: "/login",
             })
           }
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
         >
           Logout
         </button>

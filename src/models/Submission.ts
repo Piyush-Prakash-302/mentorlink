@@ -23,6 +23,22 @@ const SubmissionSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+
+    status: {
+      type: String,
+      enum: ["submitted", "reviewed"],
+      default: "submitted",
+    },
+
+    feedback: {
+      type: String,
+      default: "",
+    },
+
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

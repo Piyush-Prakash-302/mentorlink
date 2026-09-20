@@ -9,7 +9,7 @@ type User = {
   role: string;
 };
 
-export default function StudentProfile() {
+export default function MentorProfile() {
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -194,7 +194,7 @@ export default function StudentProfile() {
 
             <input
               type="text"
-              value={user?.role || "student"}
+              value={user?.role || "mentor"}
               disabled
               className="w-full border rounded-lg px-4 py-3 bg-gray-100 text-gray-500 capitalize"
             />

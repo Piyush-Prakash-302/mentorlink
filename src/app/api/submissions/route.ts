@@ -150,11 +150,101 @@ export async function POST(req: NextRequest) {
       assignment: assignmentId,
       student: studentId,
       answer,
+      status: "submitted",
     });
 
     return NextResponse.json({
       success: true,
       message: "Assignment Submitted Successfully",
+      submission,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    await connectDB();
+
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+    });
+
+    if (!token) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized",
+        },
+        { status: 401 }
+      );
+    }
+
+    const mentorId = (token as any).id;
+    const role = (token as any).role;
+
+    if (role !== "mentor") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only mentor can review submissions",
+        },
+        { status: 403 }
+      );
+    }
+
+    const { submissionId, feedback } = await req.json();
+
+    if (!submissionId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Submission ID is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const mentorAssignments = await Assignment.find({
+      mentor: mentorId,
+    }).select("_id");
+
+    const assignmentIds = mentorAssignments.map(
+      (assignment) => assignment._id
+    );
+
+    const submission = await Submission.findOne({
+      _id: submissionId,
+      assignment: { $in: assignmentIds },
+    });
+
+    if (!submission) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Submission not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    submission.feedback = feedback?.trim() || "";
+    submission.status = "reviewed";
+    submission.reviewedAt = new Date();
+
+    await submission.save();
+
+    return NextResponse.json({
+      success: true,
+      message: "Submission reviewed successfully",
       submission,
     });
   } catch (error: any) {

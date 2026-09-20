@@ -4,6 +4,7 @@ import connectDB from "@/lib/mongodb";
 import Meeting from "@/models/Meeting";
 import User from "@/models/User";
 import Notification from "@/models/Notification";
+import { sendEmail } from "@/lib/email";
 
 // GET MEETINGS
 export async function GET(req: NextRequest) {
@@ -17,7 +18,10 @@ export async function GET(req: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        {
+          success: false,
+          message: "Unauthorized",
+        },
         { status: 401 }
       );
     }
@@ -75,7 +79,10 @@ export async function POST(req: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        {
+          success: false,
+          message: "Unauthorized",
+        },
         { status: 401 }
       );
     }
@@ -127,6 +134,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Create meeting
     const meeting = await Meeting.create({
       title,
       description,
@@ -135,16 +143,44 @@ export async function POST(req: NextRequest) {
       students: studentIds,
     });
 
-    // Create notification for each selected student
-    const notifications = studentIds.map((studentId: string) => ({
-      recipient: studentId,
-      title: "New Meeting Scheduled",
-      message: `A new meeting "${title}" has been scheduled for you.`,
-      type: "meeting",
-      isRead: false,
-    }));
+    // Create website notifications
+    const notifications = studentIds.map(
+      (studentId: string) => ({
+        recipient: studentId,
+        title: "New Meeting Scheduled",
+        message: `A new meeting "${title}" has been scheduled for you.`,
+        type: "meeting",
+        isRead: false,
+      })
+    );
 
     await Notification.insertMany(notifications);
+
+    // Send email notification to each student
+    for (const studentId of studentIds) {
+      const student = students.find(
+        (s) => s._id.toString() === studentId
+      );
+
+      if (student?.email) {
+        await sendEmail(
+          student.email,
+          `New Meeting Scheduled - ${title}`,
+          `Hello ${student.name},
+
+A new meeting has been scheduled for you on MentorLink.
+
+Meeting: ${title}
+Description: ${description}
+Date: ${new Date(date).toLocaleString("en-IN")}
+
+Please login to MentorLink for more details.
+
+Regards,
+MentorLink`
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,

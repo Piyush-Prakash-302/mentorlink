@@ -3,6 +3,8 @@ import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import Announcement from "@/models/Announcement";
 import Notification from "@/models/Notification";
+import User from "@/models/User";
+import { sendEmail } from "@/lib/email";
 
 // GET ANNOUNCEMENTS
 export async function GET(req: NextRequest) {
@@ -109,6 +111,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Create announcement
     const announcement = await Announcement.create({
       title,
       message,
@@ -124,11 +127,16 @@ export async function POST(req: NextRequest) {
       mentor: mentorId,
     }).select("student");
 
-    const studentIds = assignments.map(
-      (assignment) => assignment.student.toString()
-    );
+    // Remove duplicate student IDs
+    const studentIds = [
+      ...new Set(
+        assignments.map((assignment) =>
+          assignment.student.toString()
+        )
+      ),
+    ];
 
-    // Create notification for each assigned student
+    // Create website notifications and send emails
     if (studentIds.length > 0) {
       const notifications = studentIds.map((studentId) => ({
         recipient: studentId,
@@ -139,6 +147,35 @@ export async function POST(req: NextRequest) {
       }));
 
       await Notification.insertMany(notifications);
+
+      // Get student details
+      const students = await User.find({
+        _id: { $in: studentIds },
+        role: "student",
+      }).select("name email");
+
+      // Send email to each student
+      for (const student of students) {
+        if (student.email) {
+          await sendEmail(
+            student.email,
+            `New Announcement - ${title}`,
+            `Hello ${student.name},
+
+Your mentor has posted a new announcement on MentorLink.
+
+Title: ${title}
+
+Message:
+${message}
+
+Please login to MentorLink for more details.
+
+Regards,
+MentorLink`
+          );
+        }
+      }
     }
 
     return NextResponse.json({
@@ -157,6 +194,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// GET STUDENT'S MENTOR IDS
 async function getStudentMentorIds(studentId: string) {
   const MentorAssignment = (
     await import("@/models/MentorAssignment")

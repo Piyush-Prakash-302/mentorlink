@@ -4,7 +4,9 @@ import connectDB from "@/lib/mongodb";
 import Assignment from "@/models/Assignment";
 import User from "@/models/User";
 import Notification from "@/models/Notification";
+import { sendEmail } from "@/lib/email";
 
+// GET ASSIGNMENTS
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
@@ -65,6 +67,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// CREATE ASSIGNMENT
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -135,6 +138,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Create assignment
     const assignment = await Assignment.create({
       title,
       description,
@@ -143,16 +147,44 @@ export async function POST(req: NextRequest) {
       students: studentIds,
     });
 
-    // Create notification for each selected student
-    const notifications = studentIds.map((studentId: string) => ({
-      recipient: studentId,
-      title: "New Assignment",
-      message: `A new assignment "${title}" has been assigned to you.`,
-      type: "assignment",
-      isRead: false,
-    }));
+    // Create website notifications
+    const notifications = studentIds.map(
+      (studentId: string) => ({
+        recipient: studentId,
+        title: "New Assignment",
+        message: `A new assignment "${title}" has been assigned to you.`,
+        type: "assignment",
+        isRead: false,
+      })
+    );
 
     await Notification.insertMany(notifications);
+
+    // Send email notification to each student
+    for (const studentId of studentIds) {
+      const student = students.find(
+        (s) => s._id.toString() === studentId
+      );
+
+      if (student?.email) {
+        await sendEmail(
+          student.email,
+          `New Assignment - ${title}`,
+          `Hello ${student.name},
+
+A new assignment has been assigned to you on MentorLink.
+
+Assignment: ${title}
+Description: ${description}
+Due Date: ${new Date(dueDate).toLocaleString("en-IN")}
+
+Please login to MentorLink to view and submit your assignment.
+
+Regards,
+MentorLink`
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -170,6 +202,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// DELETE ASSIGNMENT
 export async function DELETE(req: NextRequest) {
   try {
     await connectDB();

@@ -17,40 +17,48 @@ export async function middleware(req: NextRequest) {
     pathname === "/meeting" ||
     pathname === "/announcement";
 
+  // Login required
   if (isProtected && !token) {
     return NextResponse.redirect(
       new URL("/login", req.url)
     );
   }
 
-  if (pathname.startsWith("/admin") && token) {
-    if ((token as any).role !== "admin") {
-      return NextResponse.redirect(
-        new URL("/login", req.url)
-      );
-    }
+  const role = (token as any)?.role;
+
+  // Admin pages
+  if (pathname.startsWith("/admin") && role !== "admin") {
+    return NextResponse.redirect(
+      new URL("/login", req.url)
+    );
   }
 
+  // Mentor pages
+  if (pathname.startsWith("/mentor") && role !== "mentor") {
+    return NextResponse.redirect(
+      new URL("/login", req.url)
+    );
+  }
+
+  // Student pages
+  if (pathname.startsWith("/student") && role !== "student") {
+    return NextResponse.redirect(
+      new URL("/login", req.url)
+    );
+  }
+
+  // Assignments, Meetings and Announcements
+  // Both mentor and student can access these pages
   if (
-    (pathname.startsWith("/mentor") ||
-      pathname === "/assignments" ||
+    (pathname === "/assignments" ||
       pathname === "/meeting" ||
       pathname === "/announcement") &&
-    token
+    role !== "mentor" &&
+    role !== "student"
   ) {
-    if ((token as any).role !== "mentor") {
-      return NextResponse.redirect(
-        new URL("/login", req.url)
-      );
-    }
-  }
-
-  if (pathname.startsWith("/student") && token) {
-    if ((token as any).role !== "student") {
-      return NextResponse.redirect(
-        new URL("/login", req.url)
-      );
-    }
+    return NextResponse.redirect(
+      new URL("/login", req.url)
+    );
   }
 
   return NextResponse.next();

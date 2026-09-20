@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getSession } from "next-auth/react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Navbar from "@/components/dashboard/Navbar";
 
@@ -9,9 +10,14 @@ interface Announcement {
   title: string;
   message: string;
   createdAt: string;
+  mentor?: {
+    name: string;
+    email: string;
+  };
 }
 
 export default function AnnouncementPage() {
+  const [role, setRole] = useState("");
   const [announcements, setAnnouncements] = useState<
     Announcement[]
   >([]);
@@ -24,12 +30,30 @@ export default function AnnouncementPage() {
   const [deleting, setDeleting] = useState("");
 
   useEffect(() => {
-    loadAnnouncements();
+    initialize();
   }, []);
+
+  async function initialize() {
+    try {
+      const session = await getSession();
+      const userRole = (session?.user as any)?.role;
+
+      setRole(userRole || "");
+
+      await loadAnnouncements();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function loadAnnouncements() {
     try {
-      const res = await fetch("/api/announcements");
+      const res = await fetch("/api/announcements", {
+        cache: "no-store",
+      });
+
       const data = await res.json();
 
       if (data.success) {
@@ -37,8 +61,6 @@ export default function AnnouncementPage() {
       }
     } catch (error) {
       console.log(error);
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -139,64 +161,68 @@ export default function AnnouncementPage() {
             📢 Announcements
           </h1>
 
-          {/* Create Announcement */}
-          <div className="bg-white rounded-xl shadow p-6 max-w-3xl mb-8">
-            <h2 className="text-xl font-semibold mb-6">
-              Create Announcement
-            </h2>
+          {/* ================= MENTOR VIEW ================= */}
+          {role === "mentor" && (
+            <div className="bg-white rounded-xl shadow p-6 max-w-3xl mb-8">
+              <h2 className="text-xl font-semibold mb-6">
+                Create Announcement
+              </h2>
 
-            <form onSubmit={createAnnouncement}>
-              <div className="mb-5">
-                <label className="block mb-2 font-medium">
-                  Announcement Title
-                </label>
+              <form onSubmit={createAnnouncement}>
+                <div className="mb-5">
+                  <label className="block mb-2 font-medium">
+                    Announcement Title
+                  </label>
 
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) =>
-                    setTitle(e.target.value)
-                  }
-                  placeholder="Enter announcement title"
-                  className="w-full border rounded-lg p-3"
-                  required
-                />
-              </div>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) =>
+                      setTitle(e.target.value)
+                    }
+                    placeholder="Enter announcement title"
+                    className="w-full border rounded-lg p-3"
+                    required
+                  />
+                </div>
 
-              <div className="mb-6">
-                <label className="block mb-2 font-medium">
-                  Message
-                </label>
+                <div className="mb-6">
+                  <label className="block mb-2 font-medium">
+                    Message
+                  </label>
 
-                <textarea
-                  value={message}
-                  onChange={(e) =>
-                    setMessage(e.target.value)
-                  }
-                  placeholder="Write announcement message"
-                  className="w-full border rounded-lg p-3"
-                  rows={5}
-                  required
-                />
-              </div>
+                  <textarea
+                    value={message}
+                    onChange={(e) =>
+                      setMessage(e.target.value)
+                    }
+                    placeholder="Write announcement message"
+                    className="w-full border rounded-lg p-3"
+                    rows={5}
+                    required
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={creating}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
-              >
-                {creating
-                  ? "Creating..."
-                  : "Create Announcement"}
-              </button>
-            </form>
-          </div>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+                >
+                  {creating
+                    ? "Creating..."
+                    : "Create Announcement"}
+                </button>
+              </form>
+            </div>
+          )}
 
-          {/* My Announcements */}
+          {/* ================= ANNOUNCEMENT LIST ================= */}
           <div className="bg-white rounded-xl shadow overflow-hidden">
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                My Announcements
+                {role === "mentor"
+                  ? "My Announcements"
+                  : "My Announcements"}
               </h2>
             </div>
 
@@ -206,7 +232,7 @@ export default function AnnouncementPage() {
               </div>
             ) : announcements.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
-                No announcements created yet.
+                No announcements available.
               </div>
             ) : (
               <div className="divide-y">
@@ -225,28 +251,44 @@ export default function AnnouncementPage() {
                           {announcement.message}
                         </p>
 
-                        <p className="text-sm text-gray-400 mt-3">
-                          {new Date(
-                            announcement.createdAt
-                          ).toLocaleDateString()}
-                        </p>
+                        <div className="text-sm text-gray-400 mt-3 space-y-1">
+                          <p>
+                            📅{" "}
+                            {new Date(
+                              announcement.createdAt
+                            ).toLocaleString("en-IN")}
+                          </p>
+
+                          {role === "student" &&
+                            announcement.mentor && (
+                              <p>
+                                👨‍🏫 Mentor:{" "}
+                                {announcement.mentor.name}
+                              </p>
+                            )}
+                        </div>
                       </div>
 
-                      <button
-                        onClick={() =>
-                          deleteAnnouncement(
+                      {/* Delete only for mentor */}
+                      {role === "mentor" && (
+                        <button
+                          onClick={() =>
+                            deleteAnnouncement(
+                              announcement._id
+                            )
+                          }
+                          disabled={
+                            deleting ===
                             announcement._id
-                          )
-                        }
-                        disabled={
-                          deleting === announcement._id
-                        }
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg h-fit"
-                      >
-                        {deleting === announcement._id
-                          ? "Deleting..."
-                          : "Delete"}
-                      </button>
+                          }
+                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg h-fit"
+                        >
+                          {deleting ===
+                          announcement._id
+                            ? "Deleting..."
+                            : "Delete"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
