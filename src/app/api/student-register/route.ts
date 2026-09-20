@@ -1,46 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
+import AuthorizedEmail from "@/models/AuthorizedEmail";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    // Check logged-in admin
-    const token = await getToken({
-      req,
-      secret: process.env.AUTH_SECRET,
-    });
+    const { name, email, password } = await req.json();
 
-    if (!token || (token as any).role !== "admin") {
+    if (!name || !email || !password) {
       return NextResponse.json(
         {
           success: false,
-          message: "Only admin can use this registration API.",
-        },
-        { status: 403 }
-      );
-    }
-
-    const { name, email, password, role } = await req.json();
-
-    if (!name || !email || !password || !role) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "All fields are required.",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!["student", "mentor", "admin"].includes(role)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid role.",
+          message: "All fields are required",
         },
         { status: 400 }
       );
@@ -48,6 +22,22 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
 
+    // Check authorized email
+    const authorizedEmail = await AuthorizedEmail.findOne({
+      email: cleanEmail,
+    });
+
+    if (!authorizedEmail) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "This email is not authorized for student registration.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check existing user
     const existingUser = await User.findOne({
       email: cleanEmail,
     });
@@ -56,7 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Email already exists.",
+          message: "Email already registered.",
         },
         { status: 400 }
       );
@@ -78,16 +68,15 @@ export async function POST(req: NextRequest) {
       name: name.trim(),
       email: cleanEmail,
       password: hashedPassword,
-      role,
+      role: "student",
     });
 
-    const { password: _, ...userWithoutPassword } =
-      user.toObject();
+    const { password: _, ...userWithoutPassword } = user.toObject();
 
     return NextResponse.json(
       {
         success: true,
-        message: "User registered successfully.",
+        message: "Student registered successfully.",
         user: userWithoutPassword,
       },
       { status: 201 }

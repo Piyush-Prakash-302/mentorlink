@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/mongodb";
+import AuthorizedEmail from "@/models/AuthorizedEmail";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
@@ -27,8 +28,13 @@ const handler = NextAuth({
           throw new Error("Email and Password required");
         }
 
+        const cleanEmail = credentials.email
+          .toString()
+          .toLowerCase()
+          .trim();
+
         const user = await User.findOne({
-          email: credentials.email,
+          email: cleanEmail,
         });
 
         if (!user) {
@@ -42,6 +48,19 @@ const handler = NextAuth({
 
         if (!isMatch) {
           throw new Error("Invalid Password");
+        }
+
+        // Student ke liye authorized email check
+        if (user.role === "student") {
+          const authorizedEmail = await AuthorizedEmail.findOne({
+            email: cleanEmail,
+          });
+
+          if (!authorizedEmail) {
+            throw new Error(
+              "Your email is not authorized for student access."
+            );
+          }
         }
 
         return {

@@ -8,6 +8,7 @@ import {
   Users,
   UserCog,
   UserPlus,
+  Mail,
   Calendar,
   Megaphone,
   ClipboardList,
@@ -74,7 +75,7 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
-
+          {/* Dashboard */}
           <Link
             href={dashboard}
             onClick={() => setOpen(false)}
@@ -84,6 +85,7 @@ export default function Sidebar() {
             Dashboard
           </Link>
 
+          {/* Admin Menu */}
           {role === "admin" && (
             <>
               <Link
@@ -112,9 +114,19 @@ export default function Sidebar() {
                 <UserPlus size={20} />
                 Assign Mentor
               </Link>
+
+              <Link
+                href="/admin/authorized-emails"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-700 transition"
+              >
+                <Mail size={20} />
+                Authorized Emails
+              </Link>
             </>
           )}
 
+          {/* Mentor Menu */}
           {role === "mentor" && (
             <>
               <Link
@@ -145,9 +157,9 @@ export default function Sidebar() {
               </Link>
             </>
           )}
-
         </nav>
 
+        {/* Logout */}
         <div className="p-4 border-t border-slate-700">
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}

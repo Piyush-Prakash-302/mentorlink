@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 
 export default function LoginForm() {
@@ -35,12 +36,9 @@ export default function LoginForm() {
       return;
     }
 
-    // Session nikalo
     const session = await getSession();
-
     const role = (session?.user as any)?.role;
 
-    // Role ke hisaab se redirect
     if (role === "admin") {
       router.push("/admin/dashboard");
     } else if (role === "mentor") {
@@ -51,7 +49,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <form
         onSubmit={handleLogin}
         className="w-full max-w-md bg-white rounded-xl shadow-lg p-8"
@@ -112,6 +110,7 @@ export default function LoginForm() {
           </div>
         </div>
 
+        {/* Login */}
         <button
           type="submit"
           disabled={loading}
@@ -120,6 +119,20 @@ export default function LoginForm() {
           <LogIn size={18} />
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        {/* Student Registration */}
+        <div className="text-center mt-5 pt-5 border-t">
+          <p className="text-gray-600 text-sm mb-2">
+            New student?
+          </p>
+
+          <Link
+            href="/register"
+            className="text-blue-600 hover:text-blue-700 font-semibold"
+          >
+            Register as Student
+          </Link>
+        </div>
       </form>
     </div>
   );
