@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import Assignment from "@/models/Assignment";
 import User from "@/models/User";
+import Notification from "@/models/Notification";
 
 export async function GET(req: NextRequest) {
   try {
@@ -141,6 +142,17 @@ export async function POST(req: NextRequest) {
       mentor: mentorId,
       students: studentIds,
     });
+
+    // Create notification for each selected student
+    const notifications = studentIds.map((studentId: string) => ({
+      recipient: studentId,
+      title: "New Assignment",
+      message: `A new assignment "${title}" has been assigned to you.`,
+      type: "assignment",
+      isRead: false,
+    }));
+
+    await Notification.insertMany(notifications);
 
     return NextResponse.json({
       success: true,

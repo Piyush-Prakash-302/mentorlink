@@ -8,19 +8,20 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const { name, email, password } = await req.json();
+    const { name, email, mobile, password } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
         {
           success: false,
-          message: "All fields are required",
+          message: "Name, email and password are required.",
         },
         { status: 400 }
       );
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const cleanMobile = mobile?.trim() || "";
 
     // Check authorized email
     const authorizedEmail = await AuthorizedEmail.findOne({
@@ -31,7 +32,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "This email is not authorized for student registration.",
+          message:
+            "This email is not authorized for student registration.",
         },
         { status: 403 }
       );
@@ -62,16 +64,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate mobile if provided
+    if (cleanMobile && !/^[0-9]{10}$/.test(cleanMobile)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Mobile number must be exactly 10 digits.",
+        },
+        { status: 400 }
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name: name.trim(),
       email: cleanEmail,
+      mobile: cleanMobile,
       password: hashedPassword,
       role: "student",
     });
 
-    const { password: _, ...userWithoutPassword } = user.toObject();
+    const { password: _, ...userWithoutPassword } =
+      user.toObject();
 
     return NextResponse.json(
       {

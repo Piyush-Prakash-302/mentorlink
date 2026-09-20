@@ -13,6 +13,12 @@ const UserSchema = new Schema(
       unique: true,
     },
 
+    mobile: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+
     password: {
       type: String,
       required: true,

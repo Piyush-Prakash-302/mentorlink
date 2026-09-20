@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import Announcement from "@/models/Announcement";
+import Notification from "@/models/Notification";
 
 // GET ANNOUNCEMENTS
 export async function GET(req: NextRequest) {
@@ -114,6 +115,32 @@ export async function POST(req: NextRequest) {
       mentor: mentorId,
     });
 
+    // Get students assigned to this mentor
+    const MentorAssignment = (
+      await import("@/models/MentorAssignment")
+    ).default;
+
+    const assignments = await MentorAssignment.find({
+      mentor: mentorId,
+    }).select("student");
+
+    const studentIds = assignments.map(
+      (assignment) => assignment.student.toString()
+    );
+
+    // Create notification for each assigned student
+    if (studentIds.length > 0) {
+      const notifications = studentIds.map((studentId) => ({
+        recipient: studentId,
+        title: "New Announcement",
+        message: `Your mentor posted a new announcement: "${title}".`,
+        type: "announcement",
+        isRead: false,
+      }));
+
+      await Notification.insertMany(notifications);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Announcement Created Successfully",
@@ -141,6 +168,7 @@ async function getStudentMentorIds(studentId: string) {
 
   return assignments.map((assignment) => assignment.mentor);
 }
+
 // DELETE ANNOUNCEMENT
 export async function DELETE(req: NextRequest) {
   try {

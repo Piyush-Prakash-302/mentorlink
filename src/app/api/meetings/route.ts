@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import Meeting from "@/models/Meeting";
 import User from "@/models/User";
+import Notification from "@/models/Notification";
 
 // GET MEETINGS
 export async function GET(req: NextRequest) {
@@ -134,6 +135,17 @@ export async function POST(req: NextRequest) {
       students: studentIds,
     });
 
+    // Create notification for each selected student
+    const notifications = studentIds.map((studentId: string) => ({
+      recipient: studentId,
+      title: "New Meeting Scheduled",
+      message: `A new meeting "${title}" has been scheduled for you.`,
+      type: "meeting",
+      isRead: false,
+    }));
+
+    await Notification.insertMany(notifications);
+
     return NextResponse.json({
       success: true,
       message: "Meeting Created Successfully",
@@ -149,6 +161,7 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
 // DELETE MEETING
 export async function DELETE(req: NextRequest) {
   try {

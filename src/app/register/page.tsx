@@ -10,6 +10,7 @@ export default function RegisterPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -33,6 +34,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (mobile && !/^[0-9]{10}$/.test(mobile)) {
+      setError("Mobile number must be exactly 10 digits.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -44,6 +50,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name,
           email,
+          mobile,
           password,
         }),
       });
@@ -61,6 +68,7 @@ export default function RegisterPage() {
 
       setName("");
       setEmail("");
+      setMobile("");
       setPassword("");
       setConfirmPassword("");
 
@@ -130,6 +138,29 @@ export default function RegisterPage() {
             className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+        </div>
+
+        {/* Mobile */}
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">
+            Mobile Number
+          </label>
+
+          <input
+            type="tel"
+            value={mobile}
+            onChange={(e) =>
+              setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+            }
+            placeholder="Enter 10-digit mobile number"
+            inputMode="numeric"
+            maxLength={10}
+            className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          <p className="text-xs text-gray-500 mt-1">
+            Optional
+          </p>
         </div>
 
         {/* Password */}
