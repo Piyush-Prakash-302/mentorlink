@@ -11,6 +11,8 @@ const UserSchema = new Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
 
     mobile: {
@@ -26,8 +28,32 @@ const UserSchema = new Schema(
 
     role: {
       type: String,
-      enum: ["admin", "mentor", "student"],
+      enum: ["admin", "mentor", "teacher", "student"],
       default: "student",
+    },
+
+    subject: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+
+    branch: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+
+    semester: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+
+    section: {
+      type: String,
+      required: false,
+      trim: true,
     },
   },
   {

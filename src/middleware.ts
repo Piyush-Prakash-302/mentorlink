@@ -12,43 +12,40 @@ export async function middleware(req: NextRequest) {
   const isProtected =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/mentor") ||
+    pathname.startsWith("/teacher") ||
     pathname.startsWith("/student") ||
     pathname === "/assignments" ||
     pathname === "/meeting" ||
     pathname === "/announcement";
 
-  // Login required
   if (isProtected && !token) {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   const role = (token as any)?.role;
 
-  // Admin pages
+  // Admin
   if (pathname.startsWith("/admin") && role !== "admin") {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Mentor pages
+  // Mentor
   if (pathname.startsWith("/mentor") && role !== "mentor") {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Student pages
+  // Teacher
+  if (pathname.startsWith("/teacher") && role !== "teacher") {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // Student
   if (pathname.startsWith("/student") && role !== "student") {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   // Assignments, Meetings and Announcements
-  // Both mentor and student can access these pages
+  // Mentor and Student
   if (
     (pathname === "/assignments" ||
       pathname === "/meeting" ||
@@ -56,9 +53,7 @@ export async function middleware(req: NextRequest) {
     role !== "mentor" &&
     role !== "student"
   ) {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   return NextResponse.next();
@@ -68,6 +63,7 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/mentor/:path*",
+    "/teacher/:path*",
     "/student/:path*",
     "/assignments",
     "/meeting",

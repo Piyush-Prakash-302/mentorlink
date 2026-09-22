@@ -39,15 +39,18 @@ export default function LoginForm() {
     const session = await getSession();
     const role = (session?.user as any)?.role;
 
-    if (role === "admin") {
-      router.push("/admin/dashboard");
-    } else if (role === "mentor") {
-      router.push("/mentor/dashboard");
-    } else {
-      router.push("/student/dashboard");
-    }
-  };
-
+if (role === "admin") {
+  router.push("/admin/dashboard");
+} else if (role === "mentor") {
+  router.push("/mentor/dashboard");
+} else if (role === "teacher") {
+  router.push("/teacher/dashboard");
+} else if (role === "student") {
+  router.push("/student/dashboard");
+} else {
+  setError("Invalid user role");
+}
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <form
