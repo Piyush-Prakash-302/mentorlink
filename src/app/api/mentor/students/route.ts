@@ -40,9 +40,13 @@ export async function GET(req: NextRequest) {
       .populate("student", "name email")
       .sort({ createdAt: -1 });
 
+    const validAssignments = assignments.filter(
+      (assignment: any) => assignment.student
+    );
+
     return NextResponse.json({
       success: true,
-      students: assignments,
+      students: validAssignments,
     });
   } catch (error: any) {
     return NextResponse.json(
