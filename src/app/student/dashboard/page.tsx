@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Navbar from "@/components/dashboard/Navbar";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface Mentor {
   _id: string;
@@ -311,14 +312,18 @@ export default function StudentDashboard() {
         <main className="p-8">
 
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">
-              ?? Student Dashboard
-            </h1>
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">
+                Student Dashboard
+              </h1>
 
-            <p className="text-gray-500 mt-1">
-              Track your mentor, meetings, assignments and progress.
-            </p>
+              <p className="text-gray-500 mt-1">
+                Track your mentor, meetings, assignments and progress.
+              </p>
+            </div>
+
+            <NotificationBell />
           </div>
 
           {/* Stats */}
@@ -421,6 +426,19 @@ export default function StudentDashboard() {
 
                 <p className="text-sm mt-1 opacity-90">
                   View mentor announcements
+                </p>
+              </a>
+
+              <a
+                href="/student/academic"
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-5 shadow transition"
+              >
+                <h3 className="text-lg font-semibold">
+                  Academic Updates
+                </h3>
+
+                <p className="text-sm mt-1 opacity-90">
+                  View teacher announcements, assignments and homework
                 </p>
               </a>
 
@@ -683,8 +701,8 @@ export default function StudentDashboard() {
                             >
                               {submission.status ===
                               "reviewed"
-                                ? "? Reviewed"
-                                : "? Pending Review"}
+                                ? "Reviewed"
+                                : "Pending Review"}
                             </span>
                           ) : (
                             <span className="inline-block px-4 py-2 rounded-full text-sm font-medium bg-red-100 text-red-700">
@@ -969,4 +987,9 @@ export default function StudentDashboard() {
     </div>
   );
 }
+
+
+
+
+
 

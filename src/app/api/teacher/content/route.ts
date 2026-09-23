@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import TeacherContent from "@/models/TeacherContent";
+import Notification from "@/models/Notification";
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,23 +12,29 @@ export async function GET(req: NextRequest) {
       secret: process.env.AUTH_SECRET,
     });
 
-    if (!token || (token as any).role !== "teacher") {
+    if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Teacher access only",
-        },
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    if ((token as any).role !== "teacher") {
+      return NextResponse.json(
+        { success: false, message: "Teacher access only" },
         { status: 403 }
       );
     }
 
     await connectDB();
 
+    const teacherId = (token as any).id;
+
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
     const filter: any = {
-      teacher: (token as any).id,
+      teacher: teacherId,
     };
 
     if (type) {
@@ -35,7 +42,8 @@ export async function GET(req: NextRequest) {
     }
 
     const contents = await TeacherContent.find(filter)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .populate("teacher", "name subject");
 
     return NextResponse.json({
       success: true,
@@ -59,45 +67,50 @@ export async function POST(req: NextRequest) {
       secret: process.env.AUTH_SECRET,
     });
 
-    if (!token || (token as any).role !== "teacher") {
+    if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Teacher access only",
-        },
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    if ((token as any).role !== "teacher") {
+      return NextResponse.json(
+        { success: false, message: "Teacher access only" },
         { status: 403 }
       );
     }
 
-    await connectDB();
+    const body = await req.json();
 
     const {
       type,
       title,
       description,
       dueDate,
-    } = await req.json();
+    } = body;
 
     if (!type || !title || !description) {
       return NextResponse.json(
         {
           success: false,
-          message: "Type, title and description are required",
+          message: "Type, title and description are required.",
         },
         { status: 400 }
       );
     }
 
-    const teacher = await User.findOne({
-      _id: (token as any).id,
-      role: "teacher",
-    });
+    await connectDB();
 
-    if (!teacher) {
+    const teacher = await User.findById(
+      (token as any).id
+    );
+
+    if (!teacher || teacher.role !== "teacher") {
       return NextResponse.json(
         {
           success: false,
-          message: "Teacher not found",
+          message: "Teacher not found.",
         },
         { status: 404 }
       );
@@ -108,7 +121,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           message:
-            "Teacher branch and semester are not assigned",
+            "Teacher branch and semester are required.",
         },
         { status: 400 }
       );
@@ -126,17 +139,37 @@ export async function POST(req: NextRequest) {
       role: "student",
       branch: teacher.branch,
       semester: teacher.semester,
-    }).select("_id name email");
+    }).select("_id");
+
+    let notificationType = "general";
+
+    if (type === "assignment" || type === "homework") {
+      notificationType = "assignment";
+    } else if (type === "announcement") {
+      notificationType = "announcement";
+    }
+
+    if (students.length > 0) {
+      await Notification.insertMany(
+        students.map((student: any) => ({
+          recipient: student._id,
+          title: title.trim(),
+          message: `${teacher.name}: ${description.trim()}`,
+          type: notificationType,
+          isRead: false,
+        }))
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Content shared successfully",
+      message: "Content published successfully.",
       content,
+      studentsCount: students.length,
       targetClass: {
         branch: teacher.branch,
         semester: teacher.semester,
       },
-      studentsCount: students.length,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -156,17 +189,19 @@ export async function DELETE(req: NextRequest) {
       secret: process.env.AUTH_SECRET,
     });
 
-    if (!token || (token as any).role !== "teacher") {
+    if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Teacher access only",
-        },
-        { status: 403 }
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    await connectDB();
+    if ((token as any).role !== "teacher") {
+      return NextResponse.json(
+        { success: false, message: "Teacher access only" },
+        { status: 403 }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -175,11 +210,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Content ID is required",
+          message: "Content ID is required.",
         },
         { status: 400 }
       );
     }
+
+    await connectDB();
 
     const deleted = await TeacherContent.findOneAndDelete({
       _id: id,
@@ -190,7 +227,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Content not found",
+          message: "Content not found.",
         },
         { status: 404 }
       );
@@ -198,7 +235,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Content deleted successfully",
+      message: "Content deleted successfully.",
     });
   } catch (error: any) {
     return NextResponse.json(
