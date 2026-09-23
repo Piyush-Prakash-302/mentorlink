@@ -208,10 +208,10 @@ export default function StudentDashboard() {
   }
 
   function getTeacherLabel(type: TeacherContent["type"]) {
-    if (type === "announcement") return "?? Teacher Announcements";
-    if (type === "assignment") return "?? Teacher Assignments";
-    if (type === "homework") return "?? Teacher Homework";
-    return "?? Class Information";
+    if (type === "announcement") return " Teacher Announcements";
+    if (type === "assignment") return " Teacher Assignments";
+    if (type === "homework") return " Teacher Homework";
+    return " Class Information";
   }
 
   function getSubmission(assignmentId: string) {
@@ -395,7 +395,7 @@ export default function StudentDashboard() {
                 className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl p-5 shadow transition"
               >
                 <h3 className="text-lg font-semibold">
-                  ?? My Assignments
+                   My Assignments
                 </h3>
 
                 <p className="text-sm mt-1 opacity-90">
@@ -408,7 +408,7 @@ export default function StudentDashboard() {
                 className="bg-green-600 hover:bg-green-700 text-white rounded-xl p-5 shadow transition"
               >
                 <h3 className="text-lg font-semibold">
-                  ?? My Meetings
+                   My Meetings
                 </h3>
 
                 <p className="text-sm mt-1 opacity-90">
@@ -421,7 +421,7 @@ export default function StudentDashboard() {
                 className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl p-5 shadow transition"
               >
                 <h3 className="text-lg font-semibold">
-                  ?? Announcements
+                   Announcements
                 </h3>
 
                 <p className="text-sm mt-1 opacity-90">
@@ -450,7 +450,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                ????? My Mentor
+                 My Mentor
               </h2>
             </div>
 
@@ -468,7 +468,7 @@ export default function StudentDashboard() {
                   </h3>
 
                   <p className="text-gray-600 mt-2">
-                    ?? {mentor.email}
+                     {mentor.email}
                   </p>
 
                   {assignedAt && (
@@ -496,7 +496,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                ?? My Meetings
+                 My Meetings
               </h2>
             </div>
 
@@ -528,12 +528,12 @@ export default function StudentDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-sm">
 
                       <p>
-                        ????? <strong>Mentor:</strong>{" "}
+                         <strong>Mentor:</strong>{" "}
                         {meeting.mentor?.name}
                       </p>
 
                       <p>
-                        ?? <strong>Date:</strong>{" "}
+                         <strong>Date:</strong>{" "}
                         {new Date(
                           meeting.date
                         ).toLocaleDateString("en-IN")}
@@ -564,7 +564,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                ?? My Announcements
+                 My Announcements
               </h2>
             </div>
 
@@ -596,12 +596,12 @@ export default function StudentDashboard() {
                     <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-500">
 
                       <p>
-                        ????? Mentor:{" "}
+                         Mentor:{" "}
                         {announcement.mentor?.name}
                       </p>
 
                       <p>
-                        ??{" "}
+                        {" "}
                         {new Date(
                           announcement.createdAt
                         ).toLocaleString("en-IN")}
@@ -622,7 +622,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                ?? My Assignments
+                 My Assignments
               </h2>
             </div>
 
@@ -663,12 +663,12 @@ export default function StudentDashboard() {
                           <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-500">
 
                             <p>
-                              ????? Mentor:{" "}
+                               Mentor:{" "}
                               {assignment.mentor?.name}
                             </p>
 
                             <p>
-                              ?? Due:{" "}
+                               Due:{" "}
                               {new Date(
                                 assignment.dueDate
                               ).toLocaleDateString("en-IN")}
@@ -743,7 +743,7 @@ export default function StudentDashboard() {
                             <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-5">
 
                               <p className="font-semibold text-green-800">
-                                ????? Mentor Feedback
+                                 Mentor Feedback
                               </p>
 
                               <p className="text-gray-700 mt-2 whitespace-pre-wrap">
@@ -827,7 +827,7 @@ export default function StudentDashboard() {
                           }
                           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg mt-5"
                         >
-                          ?? Submit Assignment
+                           Submit Assignment
                         </button>
 
                       )}
@@ -844,7 +844,7 @@ export default function StudentDashboard() {
           {/* Teacher Academic Content */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-5">
-              ?? Teacher Academic Updates
+               Teacher Academic Updates
             </h2>
 
             {teacherContentLoading ? (
@@ -891,20 +891,20 @@ export default function StudentDashboard() {
 
                                 {item.teacher?.name && (
                                   <p>
-                                    ????? Teacher:{" "}
+                                     Teacher:{" "}
                                     <strong>{item.teacher.name}</strong>
                                   </p>
                                 )}
 
                                 {item.teacher?.subject && (
                                   <p>
-                                    ?? Subject:{" "}
+                                     Subject:{" "}
                                     <strong>{item.teacher.subject}</strong>
                                   </p>
                                 )}
 
                                 <p>
-                                  ?? Posted:{" "}
+                                   Posted:{" "}
                                   {new Date(
                                     item.createdAt
                                   ).toLocaleString("en-IN")}
@@ -937,7 +937,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                ?? Recent Activity
+                 Recent Activity
               </h2>
             </div>
 
