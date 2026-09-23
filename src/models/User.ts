@@ -1,4 +1,4 @@
-import mongoose, { Schema, models } from "mongoose";
+﻿import mongoose, { Schema, models } from "mongoose";
 
 const UserSchema = new Schema(
   {
@@ -45,12 +45,6 @@ const UserSchema = new Schema(
     },
 
     semester: {
-      type: String,
-      required: false,
-      trim: true,
-    },
-
-    section: {
       type: String,
       required: false,
       trim: true,

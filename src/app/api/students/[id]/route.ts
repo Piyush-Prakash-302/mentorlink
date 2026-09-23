@@ -11,51 +11,53 @@ export async function PUT(
     await connectDB();
 
     const { id } = await params;
+    const body = await req.json();
 
     const {
       name,
       email,
       mobile,
       password,
-      subject,
       branch,
       semester,
-    } = await req.json();
+    } = body;
 
-    if (!name || !email || !subject || !branch || !semester) {
+    if (!name || !email) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Name, email, subject, branch and semester are required",
+          message: "Name and email are required",
         },
         { status: 400 }
       );
     }
 
-    const teacher = await User.findOne({
-      _id: id,
-      role: "teacher",
+    const cleanEmail = email.toLowerCase().trim();
+
+    const existingUser = await User.findOne({
+      email: cleanEmail,
+      _id: { $ne: id },
     });
 
-    if (!teacher) {
+    if (existingUser) {
       return NextResponse.json(
         {
           success: false,
-          message: "Teacher not found",
+          message: "Email already exists",
         },
-        { status: 404 }
+        { status: 400 }
       );
     }
 
-    teacher.name = name.trim();
-    teacher.email = email.toLowerCase().trim();
-    teacher.mobile = mobile?.trim() || "";
-    teacher.subject = subject.trim();
-    teacher.branch = branch.trim();
-    teacher.semester = semester.trim();
+    const updateData: any = {
+      name: name.trim(),
+      email: cleanEmail,
+      mobile: mobile?.trim() || "",
+      branch: branch?.trim() || "",
+      semester: semester?.trim() || "",
+    };
 
-    if (password && password.trim() !== "") {
+    if (password && password.trim()) {
       if (password.length < 6) {
         return NextResponse.json(
           {
@@ -66,14 +68,34 @@ export async function PUT(
         );
       }
 
-      teacher.password = await bcrypt.hash(password, 10);
+      updateData.password = await bcrypt.hash(password, 10);
     }
 
-    await teacher.save();
+    const student = await User.findOneAndUpdate(
+      {
+        _id: id,
+        role: "student",
+      },
+      updateData,
+      {
+        new: true,
+      }
+    ).select("-password");
+
+    if (!student) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Student not found",
+        },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Teacher updated successfully",
+      message: "Student updated successfully",
+      student,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -95,26 +117,24 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const teacher = await User.findOne({
+    const student = await User.findOneAndDelete({
       _id: id,
-      role: "teacher",
+      role: "student",
     });
 
-    if (!teacher) {
+    if (!student) {
       return NextResponse.json(
         {
           success: false,
-          message: "Teacher not found",
+          message: "Student not found",
         },
         { status: 404 }
       );
     }
 
-    await User.findByIdAndDelete(id);
-
     return NextResponse.json({
       success: true,
-      message: "Teacher deleted successfully",
+      message: "Student deleted successfully",
     });
   } catch (error: any) {
     return NextResponse.json(

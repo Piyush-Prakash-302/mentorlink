@@ -38,14 +38,21 @@ export async function POST(req: NextRequest) {
       subject,
       branch,
       semester,
-      section,
     } = await req.json();
 
-    if (!name || !email || !password || !subject || !branch) {
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !subject ||
+      !branch ||
+      !semester
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "Name, email, password, subject and branch are required",
+          message:
+            "Name, email, password, subject, branch and semester are required",
         },
         { status: 400 }
       );
@@ -53,7 +60,9 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    const existingUser = await User.findOne({ email: cleanEmail });
+    const existingUser = await User.findOne({
+      email: cleanEmail,
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -68,15 +77,14 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const teacher = await User.create({
-      name,
+      name: name.trim(),
       email: cleanEmail,
-      mobile,
+      mobile: mobile?.trim() || "",
       password: hashedPassword,
       role: "teacher",
-      subject,
-      branch,
-      semester,
-      section,
+      subject: subject.trim(),
+      branch: branch.trim(),
+      semester: semester.trim(),
     });
 
     return NextResponse.json({
@@ -91,7 +99,6 @@ export async function POST(req: NextRequest) {
         subject: teacher.subject,
         branch: teacher.branch,
         semester: teacher.semester,
-        section: teacher.section,
       },
     });
   } catch (error: any) {

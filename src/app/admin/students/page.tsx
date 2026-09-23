@@ -9,6 +9,8 @@ interface Student {
   name: string;
   email: string;
   role: string;
+  branch?: string;
+  semester?: string;
 }
 
 export default function StudentsPage() {
@@ -21,6 +23,8 @@ export default function StudentsPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("student");
+  const [branch, setBranch] = useState("CSE");
+  const [semester, setSemester] = useState("");
 
   const [editingId, setEditingId] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -74,6 +78,8 @@ export default function StudentsPage() {
     setName(student.name);
     setEmail(student.email);
     setRole(student.role);
+    setBranch(student.branch || "CSE");
+    setSemester(student.semester || "");
 
     setPassword("");
     setIsEditing(true);
@@ -99,6 +105,8 @@ export default function StudentsPage() {
         email,
         password,
         role,
+        branch,
+        semester,
       }),
     });
 
@@ -117,6 +125,8 @@ export default function StudentsPage() {
       setEmail("");
       setPassword("");
       setRole("student");
+      setBranch("CSE");
+      setSemester("");
 
       setEditingId("");
       setIsEditing(false);
@@ -127,7 +137,8 @@ export default function StudentsPage() {
     }
   }
 
-  return (    <div className="flex min-h-screen bg-gray-100">
+  return (
+    <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
 
       <div className="flex-1">
@@ -147,6 +158,8 @@ export default function StudentsPage() {
                 setEmail("");
                 setPassword("");
                 setRole("student");
+                setBranch("CSE");
+                setSemester("");
                 setOpen(true);
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
@@ -208,6 +221,35 @@ export default function StudentsPage() {
                     <option value="admin">Admin</option>
                   </select>
 
+                  <select
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    className="w-full border rounded-lg p-3"
+                    required
+                  >
+                    <option value="">Select Branch</option>
+                    <option value="CSE">CSE</option>
+                    <option value="ECE">ECE</option>
+                    <option value="EE">EE</option>
+                    <option value="ME">ME</option>
+                    <option value="CE">CE</option>
+                  </select>
+
+                  <select
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    className="w-full border rounded-lg p-3"
+                    required
+                  >
+                    <option value="">Select Semester</option>
+                    <option value="1">1st Semester</option>
+                    <option value="2">2nd Semester</option>
+                    <option value="3">3rd Semester</option>
+                    <option value="4">4th Semester</option>
+                    <option value="5">5th Semester</option>
+                    <option value="6">6th Semester</option>
+                  </select>
+
                   <div className="flex justify-end gap-3 pt-2">
 
                     <button
@@ -244,6 +286,8 @@ export default function StudentsPage() {
                 <tr>
                   <th className="p-4 text-left">Name</th>
                   <th className="p-4 text-left">Email</th>
+                  <th className="p-4 text-left">Branch</th>
+                  <th className="p-4 text-left">Semester</th>
                   <th className="p-4 text-left">Role</th>
                   <th className="p-4 text-left">Action</th>
                 </tr>
@@ -254,13 +298,13 @@ export default function StudentsPage() {
 
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center">
+                    <td colSpan={6} className="p-6 text-center">
                       Loading...
                     </td>
                   </tr>
                 ) : students.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center">
+                    <td colSpan={6} className="p-6 text-center">
                       No Students Found
                     </td>
                   </tr>
@@ -276,6 +320,16 @@ export default function StudentsPage() {
 
                       <td className="p-4">
                         {student.email}
+                      </td>
+
+                      <td className="p-4">
+                        {student.branch || "Not assigned"}
+                      </td>
+
+                      <td className="p-4">
+                        {student.semester
+                          ? `${student.semester}th Semester`
+                          : "Not assigned"}
                       </td>
 
                       <td className="p-4 capitalize">

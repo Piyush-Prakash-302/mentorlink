@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 
 export default function TeacherDashboard() {
   const [teacher, setTeacher] = useState<any>(null);
@@ -102,37 +103,51 @@ export default function TeacherDashboard() {
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg">
+
+          <Link
+            href="/teacher/announcements"
+            className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition cursor-pointer"
+          >
             <div className="text-4xl mb-4">📢</div>
             <h4 className="text-xl font-bold">Announcements</h4>
             <p className="text-gray-500 mt-2">
               Send important information to your class.
             </p>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg">
+          <Link
+            href="/teacher/assignments"
+            className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition cursor-pointer"
+          >
             <div className="text-4xl mb-4">📝</div>
             <h4 className="text-xl font-bold">Assignments</h4>
             <p className="text-gray-500 mt-2">
               Create and share assignments with students.
             </p>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg">
+          <Link
+            href="/teacher/homework"
+            className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition cursor-pointer"
+          >
             <div className="text-4xl mb-4">📚</div>
             <h4 className="text-xl font-bold">Homework</h4>
             <p className="text-gray-500 mt-2">
               Give homework to the entire class.
             </p>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg">
+          <Link
+            href="/teacher/class-info"
+            className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition cursor-pointer"
+          >
             <div className="text-4xl mb-4">📖</div>
             <h4 className="text-xl font-bold">Class Information</h4>
             <p className="text-gray-500 mt-2">
               Share academic and class-related information.
             </p>
-          </div>
+          </Link>
+
         </div>
       </main>
     </div>

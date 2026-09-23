@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
@@ -34,6 +34,19 @@ interface Assignment {
   mentor: Mentor;
 }
 
+interface TeacherContent {
+  _id: string;
+  type: "announcement" | "assignment" | "homework" | "class-info";
+  title: string;
+  description: string;
+  dueDate?: string | null;
+  createdAt: string;
+  teacher?: {
+    name: string;
+    subject?: string;
+  };
+}
+
 interface Submission {
   _id: string;
   answer: string;
@@ -58,6 +71,9 @@ export default function StudentDashboard() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
+  const [teacherContents, setTeacherContents] = useState<TeacherContent[]>([]);
+  const [teacherContentLoading, setTeacherContentLoading] = useState(true);
+
   const [loading, setLoading] = useState(true);
   const [meetingLoading, setMeetingLoading] = useState(true);
   const [announcementLoading, setAnnouncementLoading] = useState(true);
@@ -74,6 +90,7 @@ export default function StudentDashboard() {
     loadAnnouncements();
     loadAssignments();
     loadSubmissions();
+    loadTeacherContents();
   }, []);
 
   async function loadMentor() {
@@ -165,6 +182,35 @@ export default function StudentDashboard() {
     } finally {
       setSubmissionLoading(false);
     }
+  }
+
+  async function loadTeacherContents() {
+    try {
+      const res = await fetch("/api/student/teacher-content", {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setTeacherContents(data.contents || []);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setTeacherContentLoading(false);
+    }
+  }
+
+  function getTeacherContents(type: TeacherContent["type"]) {
+    return teacherContents.filter((item) => item.type === type);
+  }
+
+  function getTeacherLabel(type: TeacherContent["type"]) {
+    if (type === "announcement") return "?? Teacher Announcements";
+    if (type === "assignment") return "?? Teacher Assignments";
+    if (type === "homework") return "?? Teacher Homework";
+    return "?? Class Information";
   }
 
   function getSubmission(assignmentId: string) {
@@ -267,7 +313,7 @@ export default function StudentDashboard() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">
-              🎓 Student Dashboard
+              ?? Student Dashboard
             </h1>
 
             <p className="text-gray-500 mt-1">
@@ -344,7 +390,7 @@ export default function StudentDashboard() {
                 className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl p-5 shadow transition"
               >
                 <h3 className="text-lg font-semibold">
-                  📚 My Assignments
+                  ?? My Assignments
                 </h3>
 
                 <p className="text-sm mt-1 opacity-90">
@@ -357,7 +403,7 @@ export default function StudentDashboard() {
                 className="bg-green-600 hover:bg-green-700 text-white rounded-xl p-5 shadow transition"
               >
                 <h3 className="text-lg font-semibold">
-                  📅 My Meetings
+                  ?? My Meetings
                 </h3>
 
                 <p className="text-sm mt-1 opacity-90">
@@ -370,7 +416,7 @@ export default function StudentDashboard() {
                 className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl p-5 shadow transition"
               >
                 <h3 className="text-lg font-semibold">
-                  📢 Announcements
+                  ?? Announcements
                 </h3>
 
                 <p className="text-sm mt-1 opacity-90">
@@ -386,7 +432,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                👨‍🏫 My Mentor
+                ????? My Mentor
               </h2>
             </div>
 
@@ -404,7 +450,7 @@ export default function StudentDashboard() {
                   </h3>
 
                   <p className="text-gray-600 mt-2">
-                    📧 {mentor.email}
+                    ?? {mentor.email}
                   </p>
 
                   {assignedAt && (
@@ -432,7 +478,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                📅 My Meetings
+                ?? My Meetings
               </h2>
             </div>
 
@@ -464,19 +510,19 @@ export default function StudentDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-sm">
 
                       <p>
-                        👨‍🏫 <strong>Mentor:</strong>{" "}
+                        ????? <strong>Mentor:</strong>{" "}
                         {meeting.mentor?.name}
                       </p>
 
                       <p>
-                        📅 <strong>Date:</strong>{" "}
+                        ?? <strong>Date:</strong>{" "}
                         {new Date(
                           meeting.date
                         ).toLocaleDateString("en-IN")}
                       </p>
 
                       <p>
-                        ⏰ <strong>Time:</strong>{" "}
+                        ? <strong>Time:</strong>{" "}
                         {new Date(
                           meeting.date
                         ).toLocaleTimeString([], {
@@ -500,7 +546,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                📢 My Announcements
+                ?? My Announcements
               </h2>
             </div>
 
@@ -532,12 +578,12 @@ export default function StudentDashboard() {
                     <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-500">
 
                       <p>
-                        👨‍🏫 Mentor:{" "}
+                        ????? Mentor:{" "}
                         {announcement.mentor?.name}
                       </p>
 
                       <p>
-                        📅{" "}
+                        ??{" "}
                         {new Date(
                           announcement.createdAt
                         ).toLocaleString("en-IN")}
@@ -558,7 +604,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                📚 My Assignments
+                ?? My Assignments
               </h2>
             </div>
 
@@ -599,19 +645,19 @@ export default function StudentDashboard() {
                           <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-500">
 
                             <p>
-                              👨‍🏫 Mentor:{" "}
+                              ????? Mentor:{" "}
                               {assignment.mentor?.name}
                             </p>
 
                             <p>
-                              📅 Due:{" "}
+                              ?? Due:{" "}
                               {new Date(
                                 assignment.dueDate
                               ).toLocaleDateString("en-IN")}
                             </p>
 
                             <p>
-                              ⏰{" "}
+                              ?{" "}
                               {new Date(
                                 assignment.dueDate
                               ).toLocaleTimeString([], {
@@ -637,8 +683,8 @@ export default function StudentDashboard() {
                             >
                               {submission.status ===
                               "reviewed"
-                                ? "✅ Reviewed"
-                                : "⏳ Pending Review"}
+                                ? "? Reviewed"
+                                : "? Pending Review"}
                             </span>
                           ) : (
                             <span className="inline-block px-4 py-2 rounded-full text-sm font-medium bg-red-100 text-red-700">
@@ -679,7 +725,7 @@ export default function StudentDashboard() {
                             <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-5">
 
                               <p className="font-semibold text-green-800">
-                                👨‍🏫 Mentor Feedback
+                                ????? Mentor Feedback
                               </p>
 
                               <p className="text-gray-700 mt-2 whitespace-pre-wrap">
@@ -702,7 +748,7 @@ export default function StudentDashboard() {
                           ) : (
                             <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                               <p className="text-yellow-800">
-                                ⏳ Your submission is waiting
+                                ? Your submission is waiting
                                 for mentor review.
                               </p>
                             </div>
@@ -763,7 +809,7 @@ export default function StudentDashboard() {
                           }
                           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg mt-5"
                         >
-                          📤 Submit Assignment
+                          ?? Submit Assignment
                         </button>
 
                       )}
@@ -777,12 +823,103 @@ export default function StudentDashboard() {
 
           </div>
 
+          {/* Teacher Academic Content */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-5">
+              ?? Teacher Academic Updates
+            </h2>
+
+            {teacherContentLoading ? (
+              <div className="bg-white rounded-xl shadow p-6 text-center">
+                Loading teacher updates...
+              </div>
+            ) : teacherContents.length === 0 ? (
+              <div className="bg-white rounded-xl shadow p-6 text-center text-gray-500">
+                No teacher updates available for your class.
+              </div>
+            ) : (
+              <div className="space-y-6">
+
+                {(["announcement", "assignment", "homework", "class-info"] as TeacherContent["type"][]).map(
+                  (type) => {
+                    const items = getTeacherContents(type);
+
+                    if (items.length === 0) return null;
+
+                    return (
+                      <div
+                        key={type}
+                        className="bg-white rounded-xl shadow overflow-hidden"
+                      >
+                        <div className="p-5 border-b bg-gray-50">
+                          <h3 className="text-xl font-semibold">
+                            {getTeacherLabel(type)}
+                          </h3>
+                        </div>
+
+                        <div className="divide-y">
+                          {items.map((item) => (
+                            <div key={item._id} className="p-6">
+
+                              <h4 className="text-lg font-bold">
+                                {item.title}
+                              </h4>
+
+                              <p className="text-gray-600 mt-2 whitespace-pre-wrap">
+                                {item.description}
+                              </p>
+
+                              <div className="flex flex-wrap gap-5 mt-4 text-sm text-gray-500">
+
+                                {item.teacher?.name && (
+                                  <p>
+                                    ????? Teacher:{" "}
+                                    <strong>{item.teacher.name}</strong>
+                                  </p>
+                                )}
+
+                                {item.teacher?.subject && (
+                                  <p>
+                                    ?? Subject:{" "}
+                                    <strong>{item.teacher.subject}</strong>
+                                  </p>
+                                )}
+
+                                <p>
+                                  ?? Posted:{" "}
+                                  {new Date(
+                                    item.createdAt
+                                  ).toLocaleString("en-IN")}
+                                </p>
+
+                                {item.dueDate && (
+                                  <p>
+                                    ? Due:{" "}
+                                    {new Date(
+                                      item.dueDate
+                                    ).toLocaleString("en-IN")}
+                                  </p>
+                                )}
+
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+
+              </div>
+            )}
+          </div>
+
           {/* Recent Activity */}
           <div className="bg-white rounded-xl shadow overflow-hidden">
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                🕒 Recent Activity
+                ?? Recent Activity
               </h2>
             </div>
 
@@ -832,3 +969,4 @@ export default function StudentDashboard() {
     </div>
   );
 }
+

@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    // Check logged-in admin
     const token = await getToken({
       req,
       secret: process.env.AUTH_SECRET,
@@ -24,7 +23,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, password, role } = await req.json();
+    const {
+      name,
+      email,
+      password,
+      role,
+      branch,
+      semester,
+    } = await req.json();
 
     if (!name || !email || !password || !role) {
       return NextResponse.json(
@@ -41,6 +47,16 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           message: "Invalid role.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (role === "student" && (!branch || !semester)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Branch and semester are required for students.",
         },
         { status: 400 }
       );
@@ -74,12 +90,19 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
+    const userData: any = {
       name: name.trim(),
       email: cleanEmail,
       password: hashedPassword,
       role,
-    });
+    };
+
+    if (role === "student") {
+      userData.branch = branch.trim();
+      userData.semester = semester.trim();
+    }
+
+    const user = await User.create(userData);
 
     const { password: _, ...userWithoutPassword } =
       user.toObject();

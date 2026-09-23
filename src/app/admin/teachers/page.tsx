@@ -13,7 +13,6 @@ interface Teacher {
   subject?: string;
   branch?: string;
   semester?: string;
-  section?: string;
 }
 
 export default function TeachersPage() {
@@ -28,7 +27,6 @@ export default function TeachersPage() {
   const [subject, setSubject] = useState("");
   const [branch, setBranch] = useState("CSE");
   const [semester, setSemester] = useState("");
-  const [section, setSection] = useState("");
 
   const [editingId, setEditingId] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -67,7 +65,6 @@ export default function TeachersPage() {
     setSubject("");
     setBranch("CSE");
     setSemester("");
-    setSection("");
     setEditingId("");
     setIsEditing(false);
   }
@@ -80,7 +77,6 @@ export default function TeachersPage() {
     setSubject(teacher.subject || "");
     setBranch(teacher.branch || "CSE");
     setSemester(teacher.semester || "");
-    setSection(teacher.section || "");
     setPassword("");
     setIsEditing(true);
     setOpen(true);
@@ -134,7 +130,6 @@ export default function TeachersPage() {
           subject,
           branch,
           semester,
-          section,
         }),
       });
 
@@ -191,11 +186,13 @@ export default function TeachersPage() {
           {open && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+
                 <h2 className="text-2xl font-bold mb-6">
                   {isEditing ? "Edit Teacher" : "Add Teacher"}
                 </h2>
 
                 <form onSubmit={saveTeacher} className="space-y-4">
+
                   <input
                     type="text"
                     placeholder="Teacher Name"
@@ -244,36 +241,41 @@ export default function TeachersPage() {
                     required
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                     <select
                       value={branch}
                       onChange={(e) => setBranch(e.target.value)}
                       className="w-full border rounded-lg p-3"
+                      required
                     >
+                      <option value="">Select Branch</option>
                       <option value="CSE">CSE</option>
                       <option value="ECE">ECE</option>
+                      <option value="EE">EE</option>
                       <option value="ME">ME</option>
                       <option value="CE">CE</option>
                     </select>
 
-                    <input
-                      type="text"
-                      placeholder="Semester"
+                    <select
                       value={semester}
                       onChange={(e) => setSemester(e.target.value)}
                       className="w-full border rounded-lg p-3"
-                    />
+                      required
+                    >
+                      <option value="">Select Semester</option>
+                      <option value="1">1st Semester</option>
+                      <option value="2">2nd Semester</option>
+                      <option value="3">3rd Semester</option>
+                      <option value="4">4th Semester</option>
+                      <option value="5">5th Semester</option>
+                      <option value="6">6th Semester</option>
+                    </select>
 
-                    <input
-                      type="text"
-                      placeholder="Section"
-                      value={section}
-                      onChange={(e) => setSection(e.target.value)}
-                      className="w-full border rounded-lg p-3"
-                    />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-3">
+
                     <button
                       type="button"
                       onClick={() => {
@@ -291,6 +293,7 @@ export default function TeachersPage() {
                     >
                       {isEditing ? "Update Teacher" : "Save Teacher"}
                     </button>
+
                   </div>
                 </form>
               </div>
@@ -299,7 +302,9 @@ export default function TeachersPage() {
 
           <div className="bg-white rounded-xl shadow overflow-hidden">
             <div className="overflow-x-auto">
+
               <table className="w-full">
+
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="p-4 text-left">Name</th>
@@ -311,6 +316,7 @@ export default function TeachersPage() {
                 </thead>
 
                 <tbody>
+
                   {loading ? (
                     <tr>
                       <td colSpan={5} className="p-6 text-center">
@@ -329,6 +335,7 @@ export default function TeachersPage() {
                         key={teacher._id}
                         className="border-t hover:bg-gray-50"
                       >
+
                         <td className="p-4 font-medium">
                           {teacher.name}
                         </td>
@@ -346,12 +353,10 @@ export default function TeachersPage() {
                           {teacher.semester
                             ? ` / Sem ${teacher.semester}`
                             : ""}
-                          {teacher.section
-                            ? ` / ${teacher.section}`
-                            : ""}
                         </td>
 
                         <td className="p-4 whitespace-nowrap">
+
                           <button
                             onClick={() => editTeacher(teacher)}
                             className="text-blue-600 hover:text-blue-800 mr-4"
@@ -367,14 +372,20 @@ export default function TeachersPage() {
                           >
                             Delete
                           </button>
+
                         </td>
+
                       </tr>
                     ))
                   )}
+
                 </tbody>
+
               </table>
+
             </div>
           </div>
+
         </main>
       </div>
     </div>
