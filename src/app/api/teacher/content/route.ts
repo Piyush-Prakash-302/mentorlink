@@ -247,3 +247,88 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+    });
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    if ((token as any).role !== "teacher") {
+      return NextResponse.json(
+        { success: false, message: "Teacher access only" },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+
+    const {
+      id,
+      type,
+      title,
+      description,
+      dueDate,
+    } = body;
+
+    if (!id || !type || !title || !description) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "ID, type, title and description are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    const content = await TeacherContent.findOneAndUpdate(
+      {
+        _id: id,
+        teacher: (token as any).id,
+      },
+      {
+        type,
+        title: title.trim(),
+        description: description.trim(),
+        dueDate: dueDate || null,
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!content) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Content not found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Content updated successfully.",
+      content,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
