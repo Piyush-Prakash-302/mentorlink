@@ -5,7 +5,7 @@ export default function TeacherAnnouncements() {
     <TeacherContentPage
       type="announcement"
       title="Announcements"
-      icon="??"
+      icon=""
       description="Send important academic information to your entire class."
     />
   );

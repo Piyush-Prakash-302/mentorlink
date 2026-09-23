@@ -5,7 +5,7 @@ export default function TeacherClassInfo() {
     <TeacherContentPage
       type="class-info"
       title="Class Information"
-      icon="??"
+      icon=""
       description="Share important academic and class-related information."
     />
   );

@@ -5,7 +5,7 @@ export default function TeacherHomework() {
     <TeacherContentPage
       type="homework"
       title="Homework"
-      icon="??"
+      icon=""
       description="Give homework to your entire class."
       showDueDate
     />

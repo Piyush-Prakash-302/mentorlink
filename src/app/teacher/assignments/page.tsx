@@ -5,7 +5,7 @@ export default function TeacherAssignments() {
     <TeacherContentPage
       type="assignment"
       title="Assignments"
-      icon="??"
+      icon=""
       description="Create and share assignments with your entire class."
       showDueDate
     />
