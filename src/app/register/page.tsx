@@ -11,6 +11,8 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
+  const [branch, setBranch] = useState("");
+  const [semester, setSemester] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -28,6 +30,11 @@ export default function RegisterPage() {
 
     setError("");
     setSuccess("");
+
+    if (!branch || !semester) {
+      setError("Please select branch and semester.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -51,6 +58,8 @@ export default function RegisterPage() {
           name,
           email,
           mobile,
+          branch,
+          semester,
           password,
         }),
       });
@@ -69,6 +78,8 @@ export default function RegisterPage() {
       setName("");
       setEmail("");
       setMobile("");
+      setBranch("");
+      setSemester("");
       setPassword("");
       setConfirmPassword("");
 
@@ -83,7 +94,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
       <form
         onSubmit={handleRegister}
         className="w-full max-w-md bg-white rounded-xl shadow-lg p-8"
@@ -161,6 +172,49 @@ export default function RegisterPage() {
           <p className="text-xs text-gray-500 mt-1">
             Optional
           </p>
+        </div>
+
+        {/* Branch */}
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">
+            Branch
+          </label>
+
+          <select
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+            className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          >
+            <option value="">Select Branch</option>
+            <option value="CSE">CSE</option>
+            <option value="ECE">ECE</option>
+            <option value="EE">EE</option>
+            <option value="ME">ME</option>
+            <option value="CE">CE</option>
+          </select>
+        </div>
+
+        {/* Semester */}
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">
+            Semester
+          </label>
+
+          <select
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+            className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          >
+            <option value="">Select Semester</option>
+            <option value="1">1st Semester</option>
+            <option value="2">2nd Semester</option>
+            <option value="3">3rd Semester</option>
+            <option value="4">4th Semester</option>
+            <option value="5">5th Semester</option>
+            <option value="6">6th Semester</option>
+          </select>
         </div>
 
         {/* Password */}

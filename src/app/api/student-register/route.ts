@@ -8,13 +8,21 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const { name, email, mobile, password } = await req.json();
+    const {
+      name,
+      email,
+      mobile,
+      branch,
+      semester,
+      password,
+    } = await req.json();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !branch || !semester) {
       return NextResponse.json(
         {
           success: false,
-          message: "Name, email and password are required.",
+          message:
+            "Name, email, branch, semester and password are required.",
         },
         { status: 400 }
       );
@@ -23,7 +31,6 @@ export async function POST(req: NextRequest) {
     const cleanEmail = email.toLowerCase().trim();
     const cleanMobile = mobile?.trim() || "";
 
-    // Check authorized email
     const authorizedEmail = await AuthorizedEmail.findOne({
       email: cleanEmail,
     });
@@ -39,7 +46,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check existing user
     const existingUser = await User.findOne({
       email: cleanEmail,
     });
@@ -64,7 +70,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate mobile if provided
     if (cleanMobile && !/^[0-9]{10}$/.test(cleanMobile)) {
       return NextResponse.json(
         {
@@ -81,6 +86,8 @@ export async function POST(req: NextRequest) {
       name: name.trim(),
       email: cleanEmail,
       mobile: cleanMobile,
+      branch: branch.trim(),
+      semester: semester.trim(),
       password: hashedPassword,
       role: "student",
     });

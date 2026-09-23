@@ -9,13 +9,25 @@ export async function GET() {
     await connectDB();
 
     const assignments = await MentorAssignment.find()
-      .populate("student", "name email")
-      .populate("mentor", "name email")
+      .populate({
+        path: "student",
+        select: "name email",
+        match: { role: "student" },
+      })
+      .populate({
+        path: "mentor",
+        select: "name email",
+        match: { role: "mentor" },
+      })
       .sort({ createdAt: -1 });
+
+    const validAssignments = assignments.filter(
+      (assignment: any) => assignment.student && assignment.mentor
+    );
 
     return NextResponse.json({
       success: true,
-      assignments,
+      assignments: validAssignments,
     });
   } catch (error: any) {
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import MentorAssignment from "@/models/MentorAssignment";
 
 export async function PUT(
   req: NextRequest,
@@ -117,7 +118,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const student = await User.findOneAndDelete({
+    const student = await User.findOne({
       _id: id,
       role: "student",
     });
@@ -131,6 +132,12 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    await MentorAssignment.deleteMany({
+      student: id,
+    });
+
+    await User.findByIdAndDelete(id);
 
     return NextResponse.json({
       success: true,
