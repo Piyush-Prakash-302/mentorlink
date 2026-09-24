@@ -37,7 +37,7 @@ interface Assignment {
 
 interface TeacherContent {
   _id: string;
-  type: "announcement" | "assignment" | "homework" | "class-info";
+  type: "announcement" | "assignment" | "homework" | "practical" | "class-info";
   title: string;
   description: string;
   dueDate?: string | null;
@@ -208,12 +208,19 @@ export default function StudentDashboard() {
   }
 
   function getTeacherLabel(type: TeacherContent["type"]) {
-    if (type === "announcement") return " Teacher Announcements";
-    if (type === "assignment") return " Teacher Assignments";
-    if (type === "homework") return " Teacher Homework";
-    return " Class Information";
+    switch (type) {
+      case "announcement":
+        return " Teacher Announcements";
+      case "assignment":
+        return " Teacher Assignments";
+      case "homework":
+        return " Teacher Homework";
+      case "practical":
+        return " Teacher Practicals";
+      case "class-info":
+        return " Class Information";
+    }
   }
-
   function getSubmission(assignmentId: string) {
     return submissions.find(
       (submission) =>
@@ -858,7 +865,7 @@ export default function StudentDashboard() {
             ) : (
               <div className="space-y-6">
 
-                {(["announcement", "assignment", "homework", "class-info"] as TeacherContent["type"][]).map(
+                {(["announcement", "assignment", "homework", "practical", "class-info"] as TeacherContent["type"][]).map(
                   (type) => {
                     const items = getTeacherContents(type);
 
@@ -987,6 +994,8 @@ export default function StudentDashboard() {
     </div>
   );
 }
+
+
 
 
 

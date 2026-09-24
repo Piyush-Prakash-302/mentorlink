@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 type Props = {
-  type: "announcement" | "assignment" | "homework" | "class-info";
+  type: "announcement" | "assignment" | "homework" | "practical" | "class-info";
   title: string;
   icon: string;
   description: string;

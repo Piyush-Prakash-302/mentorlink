@@ -9,7 +9,13 @@ const TeacherContentSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["announcement", "assignment", "homework", "class-info"],
+      enum: [
+        "announcement",
+        "assignment",
+        "homework",
+        "practical",
+        "class-info",
+      ],
       required: true,
     },
     title: {

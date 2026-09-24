@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
 
     let notificationType = "general";
 
-    if (type === "assignment" || type === "homework") {
+    if (type === "assignment" || type === "homework" || type === "practical") {
       notificationType = "assignment";
     } else if (type === "announcement") {
       notificationType = "announcement";

@@ -61,7 +61,11 @@ export default function StudentAcademicPage() {
     {
       value: "homework",
       label: "Homework",
+    },    {
+      value: "practical",
+      label: "Practicals",
     },
+
     {
       value: "class-info",
       label: "Class Information",
@@ -175,3 +179,6 @@ export default function StudentAcademicPage() {
     </div>
   );
 }
+
+
+
