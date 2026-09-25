@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import Assignment from "@/models/Assignment";
 import User from "@/models/User";
 import Notification from "@/models/Notification";
-import { sendEmail } from "@/lib/email";
+import { sendTaskEmail } from "@/lib/email";
 
 // GET ASSIGNMENTS
 export async function GET(req: NextRequest) {
@@ -138,6 +138,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const mentor = await User.findById(mentorId).select("name");
+
     // Create assignment
     const assignment = await Assignment.create({
       title,
@@ -161,30 +163,20 @@ export async function POST(req: NextRequest) {
     await Notification.insertMany(notifications);
 
     // Send email notification to each student
-    for (const studentId of studentIds) {
-      const student = students.find(
-        (s) => s._id.toString() === studentId
-      );
-
-      if (student?.email) {
-        await sendEmail(
-          student.email,
-          `New Assignment - ${title}`,
-          `Hello ${student.name},
-
-A new assignment has been assigned to you on MentorLink.
-
-Assignment: ${title}
-Description: ${description}
-Due Date: ${new Date(dueDate).toLocaleString("en-IN")}
-
-Please login to MentorLink to view and submit your assignment.
-
-Regards,
-MentorLink`
-        );
-      }
-    }
+    await Promise.allSettled(
+      students.map((student: any) =>
+        sendTaskEmail({
+          to: student.email,
+          studentName: student.name,
+          senderName: mentor?.name || "Mentor",
+          senderRole: "mentor",
+          taskType: "Assignment",
+          title: title.trim(),
+          description: description.trim(),
+          dueDate,
+        })
+      )
+    );
 
     return NextResponse.json({
       success: true,

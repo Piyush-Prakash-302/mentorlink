@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
@@ -457,7 +457,7 @@ export default function StudentDashboard() {
 
             <div className="p-6 border-b">
               <h2 className="text-xl font-semibold">
-                 My Mentor
+                My Mentor
               </h2>
             </div>
 
@@ -475,7 +475,7 @@ export default function StudentDashboard() {
                   </h3>
 
                   <p className="text-gray-600 mt-2">
-                     {mentor.email}
+                    {mentor.email}
                   </p>
 
                   {assignedAt && (
@@ -487,6 +487,24 @@ export default function StudentDashboard() {
                     </p>
                   )}
 
+                  <div className="flex flex-wrap gap-3 mt-5">
+
+                    <a
+                      href={`/chat?userId=${mentor._id}`}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold"
+                    >
+                      Private Chat
+                    </a>
+
+                    <a
+                      href={`/video-meeting?userId=${mentor._id}`}
+                      className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-lg font-semibold"
+                    >
+                      Video Meeting
+                    </a>
+
+                  </div>
+
                 </div>
 
               </div>
@@ -497,7 +515,6 @@ export default function StudentDashboard() {
             )}
 
           </div>
-
           {/* Meetings */}
           <div className="bg-white rounded-xl shadow overflow-hidden mb-8">
 
@@ -994,6 +1011,7 @@ export default function StudentDashboard() {
     </div>
   );
 }
+
 
 
 

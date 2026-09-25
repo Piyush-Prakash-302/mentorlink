@@ -3,6 +3,7 @@ import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import AuthorizedEmail from "@/models/AuthorizedEmail";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,13 +93,44 @@ export async function POST(req: NextRequest) {
       role: "student",
     });
 
+    // Email configuration
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Send registration confirmation email
+    await transporter.sendMail({
+      from: `"MentorLink" <${process.env.EMAIL_USER}>`,
+      to: cleanEmail,
+      subject: "Welcome to MentorLink",
+      text: `Hello ${name.trim()},
+
+Your student registration on MentorLink has been completed successfully.
+
+Your registered details:
+Name: ${name.trim()}
+Email: ${cleanEmail}
+Branch: ${branch.trim()}
+Semester: ${semester.trim()}
+
+You can now login to your MentorLink account using your registered email and password.
+
+Regards,
+MentorLink Team`,
+    });
+
     const { password: _, ...userWithoutPassword } =
       user.toObject();
 
     return NextResponse.json(
       {
         success: true,
-        message: "Student registered successfully.",
+        message:
+          "Student registered successfully. Confirmation email sent.",
         user: userWithoutPassword,
       },
       { status: 201 }

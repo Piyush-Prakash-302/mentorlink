@@ -8,6 +8,16 @@ interface Student {
   _id: string;
   name: string;
   email: string;
+  branch?: string;
+  semester?: string;
+  academic?: {
+    semester1?: number | null;
+    semester2?: number | null;
+    semester3?: number | null;
+    semester4?: number | null;
+    semester5?: number | null;
+    semester6?: number | null;
+  } | null;
 }
 
 interface Assignment {
@@ -480,6 +490,12 @@ export default function MentorDashboard() {
                       <th className="p-4 text-left">
                         Assigned Date
                       </th>
+                      <th className="p-4 text-left">
+                        Academic Performance
+                      </th>
+                      <th className="p-4 text-left">
+                        Communication
+                      </th>
                     </tr>
                   </thead>
 
@@ -504,6 +520,55 @@ export default function MentorDashboard() {
                               ).toLocaleDateString("en-IN")
                             : "-"}
                         </td>
+
+                        <td className="p-4 min-w-[300px]">
+                          <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm">
+                            <div>
+                              <span className="text-gray-500">Sem 1:</span>{" "}
+                              <span className="font-semibold">
+                                {assignment.student?.academic?.semester1 ?? "-"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-gray-500">Sem 2:</span>{" "}
+                              <span className="font-semibold">
+                                {assignment.student?.academic?.semester2 ?? "-"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-gray-500">Sem 3:</span>{" "}
+                              <span className="font-semibold">
+                                {assignment.student?.academic?.semester3 ?? "-"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-gray-500">Sem 4:</span>{" "}
+                              <span className="font-semibold">
+                                {assignment.student?.academic?.semester4 ?? "-"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-gray-500">Sem 5:</span>{" "}
+                              <span className="font-semibold">
+                                {assignment.student?.academic?.semester5 ?? "-"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-gray-500">Sem 6:</span>{" "}
+                              <span className="font-semibold">
+                                {assignment.student?.academic?.semester6 ?? "-"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+
+
                       </tr>
                     ))}
                   </tbody>
@@ -611,6 +676,9 @@ export default function MentorDashboard() {
                               : "Delete"}
                           </button>
                         </td>
+
+
+
                       </tr>
                     ))}
                   </tbody>
@@ -707,6 +775,9 @@ export default function MentorDashboard() {
                               : "Delete"}
                           </button>
                         </td>
+
+
+
                       </tr>
                     ))}
                   </tbody>
@@ -907,6 +978,9 @@ export default function MentorDashboard() {
                               : "Save Review"}
                           </button>
                         </td>
+
+
+
                       </tr>
                     ))}
                   </tbody>
@@ -959,3 +1033,10 @@ export default function MentorDashboard() {
     </div>
   );
 }
+
+
+
+
+
+
+

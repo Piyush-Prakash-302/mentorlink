@@ -1,0 +1,119 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import connectDB from "@/lib/mongodb";
+import StudentAcademic from "@/models/StudentAcademic";
+
+export async function GET(req: NextRequest) {
+  try {
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+    });
+
+    if (!token || (token as any).role !== "student") {
+      return NextResponse.json(
+        { success: false, message: "Student access only" },
+        { status: 403 }
+      );
+    }
+
+    await connectDB();
+
+    const academic = await StudentAcademic.findOne({
+      student: (token as any).id,
+    });
+
+    return NextResponse.json({
+      success: true,
+      academic: academic || null,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+    });
+
+    if (!token || (token as any).role !== "student") {
+      return NextResponse.json(
+        { success: false, message: "Student access only" },
+        { status: 403 }
+      );
+    }
+
+    const data = await req.json();
+
+    const semesters = [
+      "semester1",
+      "semester2",
+      "semester3",
+      "semester4",
+      "semester5",
+      "semester6",
+    ];
+
+    for (const semester of semesters) {
+      if (
+        data[semester] !== null &&
+        data[semester] !== "" &&
+        data[semester] !== undefined
+      ) {
+        const value = Number(data[semester]);
+
+        if (isNaN(value) || value < 0 || value > 10) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: `${semester} CGPA must be between 0 and 10.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    await connectDB();
+
+    const academic = await StudentAcademic.findOneAndUpdate(
+      { student: (token as any).id },
+      {
+        student: (token as any).id,
+        semester1: data.semester1 || null,
+        semester2: data.semester2 || null,
+        semester3: data.semester3 || null,
+        semester4: data.semester4 || null,
+        semester5: data.semester5 || null,
+        semester6: data.semester6 || null,
+      },
+      {
+        new: true,
+        upsert: true,
+      }
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Academic details updated successfully.",
+      academic,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}

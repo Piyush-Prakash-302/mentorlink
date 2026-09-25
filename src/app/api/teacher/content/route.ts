@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import TeacherContent from "@/models/TeacherContent";
 import Notification from "@/models/Notification";
+import { sendTaskEmail } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   try {
@@ -120,8 +121,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Teacher branch and semester are required.",
+          message: "Teacher branch and semester are required.",
         },
         { status: 400 }
       );
@@ -139,11 +139,15 @@ export async function POST(req: NextRequest) {
       role: "student",
       branch: teacher.branch,
       semester: teacher.semester,
-    }).select("_id");
+    }).select("_id name email");
 
     let notificationType = "general";
 
-    if (type === "assignment" || type === "homework" || type === "practical") {
+    if (
+      type === "assignment" ||
+      type === "homework" ||
+      type === "practical"
+    ) {
       notificationType = "assignment";
     } else if (type === "announcement") {
       notificationType = "announcement";
@@ -158,6 +162,32 @@ export async function POST(req: NextRequest) {
           type: notificationType,
           isRead: false,
         }))
+      );
+
+      const contentType =
+        type === "assignment"
+          ? "Assignment"
+          : type === "homework"
+          ? "Homework"
+          : type === "practical"
+          ? "Practical"
+          : type === "announcement"
+          ? "Announcement"
+          : "Class Information";
+
+      await Promise.allSettled(
+        students.map((student: any) =>
+          sendTaskEmail({
+            to: student.email,
+            studentName: student.name,
+            senderName: teacher.name,
+            senderRole: "teacher",
+            taskType: contentType,
+            title: title.trim(),
+            description: description.trim(),
+            dueDate: dueDate || null,
+          })
+        )
       );
     }
 
