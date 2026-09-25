@@ -567,7 +567,23 @@ export default function MentorDashboard() {
                           </div>
                         </td>
 
+                        <td className="p-4">
+                          <div className="flex flex-col gap-2">
+                            <a
+                              href={`/chat?studentId=${assignment.student?._id}`}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center"
+                            >
+                              Private Chat
+                            </a>
 
+                            <a
+                              href={`/video-meeting?studentId=${assignment.student?._id}`}
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm text-center"
+                            >
+                              Video Meeting
+                            </a>
+                          </div>
+                        </td>
 
                       </tr>
                     ))}
@@ -1033,6 +1049,7 @@ export default function MentorDashboard() {
     </div>
   );
 }
+
 
 
 
