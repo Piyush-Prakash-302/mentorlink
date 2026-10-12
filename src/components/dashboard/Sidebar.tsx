@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import {
   Users,
   UserCog,
   UserPlus,
+  ShieldCheck,
   Mail,
   Calendar,
   Megaphone,
@@ -101,6 +102,15 @@ export default function Sidebar() {
           {/* Admin Menu */}
           {role === "admin" && (
             <>
+              <Link
+                href="/admin/admins"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-700 transition"
+              >
+                <ShieldCheck size={20} />
+                Manage Admins
+              </Link>
+
               <Link
                 href="/admin/students"
                 onClick={() => setOpen(false)}

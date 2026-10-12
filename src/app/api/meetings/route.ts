@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { randomUUID } from "crypto";
 import connectDB from "@/lib/mongodb";
 import Meeting from "@/models/Meeting";
 import User from "@/models/User";
 import Notification from "@/models/Notification";
 import { sendEmail } from "@/lib/email";
 
-// GET MEETINGS
+
+ // GET MEETINGS
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
@@ -18,38 +20,62 @@ export async function GET(req: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
+        { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const userId = (token as any).id;
-    const role = (token as any).role;
+    const userId = String((token as any).id);
+    const role = String((token as any).role);
+    const now = new Date();
+
+    // Update meetings whose scheduled time has ended.
+    const overdueMeetings = await Meeting.find({
+      date: { $lte: now },
+      status: { $in: ["upcoming", "in-progress"] },
+    });
+
+    for (const meeting of overdueMeetings) {
+      const endTime =
+        new Date(meeting.date).getTime() +
+        (Number(meeting.duration) || 30) * 60 * 1000;
+
+      if (now.getTime() < endTime) {
+        continue;
+      }
+
+      if (meeting.mentorJoinedAt) {
+        meeting.status = "completed";
+        meeting.endedAt = meeting.endedAt || new Date(endTime);
+      } else {
+        meeting.status = "missed";
+      }
+
+      await meeting.save();
+    }
 
     let meetings;
 
     if (role === "mentor") {
-      meetings = await Meeting.find({
-        mentor: userId,
-      })
+      meetings = await Meeting.find({ mentor: userId })
         .populate("students", "name email")
         .populate("mentor", "name email")
         .sort({ date: 1 });
     } else if (role === "student") {
-      meetings = await Meeting.find({
-        students: userId,
-      })
+      meetings = await Meeting.find({ students: userId })
         .populate("students", "name email")
         .populate("mentor", "name email")
         .sort({ date: 1 });
-    } else {
+    } else if (role === "admin") {
       meetings = await Meeting.find()
         .populate("students", "name email")
         .populate("mentor", "name email")
         .sort({ date: 1 });
+    } else {
+      return NextResponse.json(
+        { success: false, message: "Forbidden" },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json({
@@ -58,16 +84,14 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
+      { success: false, message: error.message },
       { status: 500 }
     );
   }
 }
 
-// CREATE MEETING
+
+// CREATE SCHEDULED MEETING
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -79,15 +103,12 @@ export async function POST(req: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
+        { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const mentorId = (token as any).id;
+    const mentorId = String((token as any).id);
     const role = (token as any).role;
 
     if (role !== "mentor") {
@@ -104,51 +125,75 @@ export async function POST(req: NextRequest) {
       await req.json();
 
     if (
-      !title ||
-      !description ||
+      typeof title !== "string" ||
+      !title.trim() ||
+      typeof description !== "string" ||
+      !description.trim() ||
       !date ||
-      !studentIds ||
+      !Array.isArray(studentIds) ||
       studentIds.length === 0
     ) {
       return NextResponse.json(
         {
           success: false,
-          message: "All fields are required",
+          message: "Please provide title, description, date and students.",
         },
         { status: 400 }
       );
     }
 
-    const students = await User.find({
-      _id: { $in: studentIds },
-      role: "student",
-    });
+    const meetingDate = new Date(date);
 
-    if (students.length !== studentIds.length) {
+    if (Number.isNaN(meetingDate.getTime())) {
       return NextResponse.json(
         {
           success: false,
-          message: "Invalid student selected",
+          message: "Invalid meeting date or time.",
         },
         { status: 400 }
       );
     }
 
-    // Create meeting
-    const meeting = await Meeting.create({
-      title,
-      description,
-      date,
-      mentor: mentorId,
-      students: studentIds,
+    // Prevent duplicate student IDs.
+    const uniqueStudentIds = [
+      ...new Set(studentIds.map(String)),
+    ];
+
+    const students = await User.find({
+      _id: { $in: uniqueStudentIds },
+      role: "student",
     });
 
-    // Create website notifications
-    const notifications = studentIds.map(
-      (studentId: string) => ({
+    if (students.length !== uniqueStudentIds.length) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid student selected.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Each scheduled meeting receives its own Jitsi room.
+    const roomName = `MentorLink-${randomUUID()}`;
+
+    const meeting = await Meeting.create({
+      title: title.trim(),
+      description: description.trim(),
+      date: meetingDate,
+      mentor: mentorId,
+      students: uniqueStudentIds,
+      roomName,
+      duration: 30,
+      status: "upcoming",
+    });
+
+    // Create website notifications.
+    const notifications = uniqueStudentIds.map(
+      (studentId) => ({
         recipient: studentId,
         title: "New Meeting Scheduled",
-        message: `A new meeting "${title}" has been scheduled for you.`,
+        message: `A new meeting "${title.trim()}" has been scheduled for you.`,
         type: "meeting",
         isRead: false,
       })
@@ -156,43 +201,53 @@ export async function POST(req: NextRequest) {
 
     await Notification.insertMany(notifications);
 
-    // Send email notification to each student
-    for (const studentId of studentIds) {
+    // Send email notifications.
+    for (const studentId of uniqueStudentIds) {
       const student = students.find(
-        (s) => s._id.toString() === studentId
+        (s) => String(s._id) === studentId
       );
 
       if (student?.email) {
-        await sendEmail(
-          student.email,
-          `New Meeting Scheduled - ${title}`,
-          `Hello ${student.name},
+        try {
+          await sendEmail(
+            student.email,
+            `New Meeting Scheduled - ${title.trim()}`,
+            `Hello ${student.name},
 
 A new meeting has been scheduled for you on MentorLink.
 
-Meeting: ${title}
-Description: ${description}
-Date: ${new Date(date).toLocaleString("en-IN")}
+Meeting: ${title.trim()}
+Description: ${description.trim()}
+Date: ${meetingDate.toLocaleString("en-IN", {
+              timeZone: "Asia/Kolkata",
+            })}
 
-Please login to MentorLink for more details.
+Duration: 30 minutes
+
+Please log in to MentorLink to view your upcoming meeting.
 
 Regards,
 MentorLink`
-        );
+          );
+        } catch (emailError) {
+          // A mail delivery issue should not undo a saved meeting.
+          console.error(
+            "Meeting email failed for student:",
+            studentId,
+            emailError
+          );
+        }
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: "Meeting Created Successfully",
+      message: "Meeting scheduled successfully.",
       meeting,
     });
   } catch (error: any) {
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
+      { success: false, message: error.message },
       { status: 500 }
     );
   }
@@ -210,15 +265,12 @@ export async function DELETE(req: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
+        { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const mentorId = (token as any).id;
+    const mentorId = String((token as any).id);
     const role = (token as any).role;
 
     if (role !== "mentor") {
@@ -262,14 +314,11 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Meeting Deleted Successfully",
+      message: "Meeting deleted successfully.",
     });
   } catch (error: any) {
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
+      { success: false, message: error.message },
       { status: 500 }
     );
   }

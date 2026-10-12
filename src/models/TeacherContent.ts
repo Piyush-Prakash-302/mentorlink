@@ -7,6 +7,7 @@ const TeacherContentSchema = new Schema(
       ref: "User",
       required: true,
     },
+
     type: {
       type: String,
       enum: [
@@ -18,17 +19,41 @@ const TeacherContentSchema = new Schema(
       ],
       required: true,
     },
+
     title: {
       type: String,
       required: true,
     },
+
     description: {
       type: String,
       required: true,
     },
+
     dueDate: {
       type: Date,
       default: null,
+    },
+
+    // File upload details
+    fileId: {
+      type: Schema.Types.ObjectId,
+      default: null,
+    },
+
+    fileName: {
+      type: String,
+      default: "",
+    },
+
+    fileType: {
+      type: String,
+      default: "",
+    },
+
+    fileSize: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }

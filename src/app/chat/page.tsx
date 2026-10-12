@@ -1,4 +1,5 @@
-﻿"use client";
+﻿
+"use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -7,12 +8,56 @@ type Message = {
   _id: string;
   message: string;
   createdAt: string;
+  isRead?: boolean;
+  deliveredAt?: string | null;
+  readAt?: string | null;
   sender: {
     _id: string;
     name: string;
     role: string;
   };
+  receiver?: {
+    _id: string;
+    name: string;
+    role: string;
+  };
 };
+
+function MessageTicks({ item }: { item: Message }) {
+  if (item.readAt || item.isRead) {
+    return (
+      <span
+        className="ml-1 font-bold tracking-[-4px] text-sky-300"
+        title="Read"
+        aria-label="Read"
+      >
+        ✓✓
+      </span>
+    );
+  }
+
+  if (item.deliveredAt) {
+    return (
+      <span
+        className="ml-1 font-bold tracking-[-4px] text-gray-300"
+        title="Delivered"
+        aria-label="Delivered"
+      >
+        ✓✓
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="ml-1 font-bold text-gray-300"
+      title="Sent"
+      aria-label="Sent"
+    >
+      ✓
+    </span>
+  );
+}
 
 function ChatContent() {
   const searchParams = useSearchParams();
@@ -55,9 +100,11 @@ function ChatContent() {
   }
 
   useEffect(() => {
-    loadMessages();
+    void loadMessages();
 
-    const interval = setInterval(loadMessages, 3000);
+    const interval = setInterval(() => {
+      void loadMessages();
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [userId]);
@@ -104,15 +151,10 @@ function ChatContent() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-6">
-
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-
         {/* Header */}
         <div className="bg-blue-600 text-white px-6 py-5">
-          <h1 className="text-2xl font-bold">
-            Private Chat
-          </h1>
-
+          <h1 className="text-2xl font-bold">Private Chat</h1>
           <p className="text-blue-100 text-sm mt-1">
             Mentor and mentee communication
           </p>
@@ -122,7 +164,7 @@ function ChatContent() {
         <div className="px-5 py-4 bg-white border-b">
           {userId && (
             <a
-              href={`/video-meeting?userId=${userId}`}
+              href={`/video-meeting?userId=${encodeURIComponent(userId)}`}
               className="inline-block bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold transition"
             >
               Start Video Meeting
@@ -132,37 +174,28 @@ function ChatContent() {
 
         {/* Chat Area */}
         <div className="h-[550px] overflow-y-auto p-5 bg-slate-100">
-
           {loading ? (
             <p className="text-center text-gray-500 mt-10">
               Loading messages...
             </p>
           ) : error ? (
-            <p className="text-center text-red-500 mt-10">
-              {error}
-            </p>
+            <p className="text-center text-red-500 mt-10">{error}</p>
           ) : messages.length === 0 ? (
             <p className="text-center text-gray-500 mt-10">
               No messages yet. Start the conversation.
             </p>
           ) : (
             <div className="space-y-3">
-
               {messages.map((item) => {
-
-                const isMine =
-                  item.sender?._id !== userId;
+                const isMine = item.sender?._id !== userId;
 
                 return (
                   <div
                     key={item._id}
                     className={`flex ${
-                      isMine
-                        ? "justify-end"
-                        : "justify-start"
+                      isMine ? "justify-end" : "justify-start"
                     }`}
                   >
-
                     <div
                       className={`max-w-[75%] px-4 py-3 shadow-sm ${
                         isMine
@@ -170,17 +203,12 @@ function ChatContent() {
                           : "bg-white text-gray-800 border rounded-2xl rounded-bl-md"
                       }`}
                     >
-
                       <div
                         className={`text-xs font-semibold mb-1 ${
-                          isMine
-                            ? "text-blue-100"
-                            : "text-gray-500"
+                          isMine ? "text-blue-100" : "text-gray-500"
                         }`}
                       >
-                        {isMine
-                          ? "You"
-                          : item.sender?.name}
+                        {isMine ? "You" : item.sender?.name}
                       </div>
 
                       <p className="text-[15px] whitespace-pre-wrap break-words">
@@ -188,30 +216,30 @@ function ChatContent() {
                       </p>
 
                       <div
-                        className={`text-[10px] mt-1 text-right ${
-                          isMine
-                            ? "text-blue-100"
-                            : "text-gray-400"
+                        className={`flex items-center justify-end text-[10px] mt-1 ${
+                          isMine ? "text-blue-100" : "text-gray-400"
                         }`}
                       >
-                        {new Date(
-                          item.createdAt
-                        ).toLocaleTimeString("en-IN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
+                        <span>
+                          {new Date(item.createdAt).toLocaleTimeString(
+                            "en-IN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </span>
 
+                        {isMine && <MessageTicks item={item} />}
+                      </div>
                     </div>
                   </div>
                 );
               })}
 
               <div ref={messagesEndRef} />
-
             </div>
           )}
-
         </div>
 
         {/* Message Input */}
@@ -219,33 +247,27 @@ function ChatContent() {
           onSubmit={sendMessage}
           className="p-4 bg-white border-t flex gap-3"
         >
-
           <input
             type="text"
             value={text}
-            onChange={(e) =>
-              setText(e.target.value)
-            }
+            onChange={(e) => setText(e.target.value)}
             placeholder="Type a message..."
             className="flex-1 border border-gray-300 rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-blue-500"
           />
 
           <button
             type="submit"
-            disabled={
-              sending || !text.trim()
-            }
+            disabled={sending || !text.trim()}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-6 py-3 rounded-full font-semibold"
           >
             {sending ? "Sending..." : "Send"}
           </button>
-
         </form>
-
       </div>
     </div>
   );
 }
+
 export default function ChatPage() {
   return (
     <Suspense

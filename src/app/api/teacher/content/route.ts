@@ -1,118 +1,112 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿
+import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { ObjectId } from "mongodb";
+import { Readable } from "stream";
 import connectDB from "@/lib/mongodb";
+import getGridFSBucket from "@/lib/gridfs";
 import User from "@/models/User";
 import TeacherContent from "@/models/TeacherContent";
 import Notification from "@/models/Notification";
 import { sendTaskEmail } from "@/lib/email";
 
-export async function GET(req: NextRequest) {
-  try {
-    const token = await getToken({
-      req,
-      secret: process.env.AUTH_SECRET,
-    });
+export const runtime = "nodejs";
 
-    if (!token) {
-      return NextResponse.json(
+const ALLOWED_EXTENSIONS = [
+  "pdf",
+  "doc",
+  "docx",
+  "ppt",
+  "pptx",
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+async function getTeacherToken(req: NextRequest) {
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+  });
+
+  if (!token) {
+    return {
+      error: NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
-      );
-    }
+      ),
+    };
+  }
 
-    if ((token as any).role !== "teacher") {
-      return NextResponse.json(
+  if ((token as any).role !== "teacher") {
+    return {
+      error: NextResponse.json(
         { success: false, message: "Teacher access only" },
         { status: 403 }
-      );
-    }
+      ),
+    };
+  }
+
+  return { token };
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const auth = await getTeacherToken(req);
+    if (auth.error) return auth.error;
 
     await connectDB();
-
-    const teacherId = (token as any).id;
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
     const filter: any = {
-      teacher: teacherId,
+      teacher: (auth.token as any).id,
     };
 
-    if (type) {
-      filter.type = type;
-    }
+    if (type) filter.type = type;
 
     const contents = await TeacherContent.find(filter)
       .sort({ createdAt: -1 })
-      .populate("teacher", "name subject");
+      .populate("teacher", "name subject")
+      .lean();
 
     return NextResponse.json({
       success: true,
       contents,
     });
   } catch (error: any) {
+    console.error("Teacher content GET error:", error);
+
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
+      { success: false, message: "Unable to load content." },
       { status: 500 }
     );
   }
 }
 
 export async function POST(req: NextRequest) {
+  let bucket: Awaited<ReturnType<typeof getGridFSBucket>> | null = null;
+  let uploadedFileId: ObjectId | null = null;
+  let createdContentId: any = null;
+
   try {
-    const token = await getToken({
-      req,
-      secret: process.env.AUTH_SECRET,
-    });
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if ((token as any).role !== "teacher") {
-      return NextResponse.json(
-        { success: false, message: "Teacher access only" },
-        { status: 403 }
-      );
-    }
-
-    const body = await req.json();
-
-    const {
-      type,
-      title,
-      description,
-      dueDate,
-    } = body;
-
-    if (!type || !title || !description) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Type, title and description are required.",
-        },
-        { status: 400 }
-      );
-    }
+    const auth = await getTeacherToken(req);
+    if (auth.error) return auth.error;
 
     await connectDB();
 
-    const teacher = await User.findById(
-      (token as any).id
-    );
+    const teacher = await User.findOne({
+      _id: (auth.token as any).id,
+      role: "teacher",
+    });
 
-    if (!teacher || teacher.role !== "teacher") {
+    if (!teacher) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Teacher not found.",
-        },
+        { success: false, message: "Teacher not found." },
         { status: 404 }
       );
     }
@@ -127,13 +121,131 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const contentType = req.headers.get("content-type") || "";
+
+    let type = "";
+    let title = "";
+    let description = "";
+    let dueDate: string | null = null;
+    let file: File | null = null;
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+
+      type = String(formData.get("type") || "");
+      title = String(formData.get("title") || "");
+      description = String(formData.get("description") || "");
+      dueDate = String(formData.get("dueDate") || "") || null;
+
+      const selectedFile = formData.get("file");
+
+      if (selectedFile instanceof File && selectedFile.size > 0) {
+        file = selectedFile;
+      }
+    } else if (contentType.includes("application/json")) {
+      const body = await req.json();
+
+      type = body.type || "";
+      title = body.title || "";
+      description = body.description || "";
+      dueDate = body.dueDate || null;
+    } else {
+      return NextResponse.json(
+        { success: false, message: "Unsupported request format." },
+        { status: 415 }
+      );
+    }
+
+    const allowedContentTypes = [
+      "announcement",
+      "assignment",
+      "homework",
+      "practical",
+      "class-info",
+    ];
+
+    if (!allowedContentTypes.includes(type)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid content type." },
+        { status: 400 }
+      );
+    }
+
+    if (!title.trim() || !description.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Title and description are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (dueDate && Number.isNaN(Date.parse(dueDate))) {
+      return NextResponse.json(
+        { success: false, message: "Invalid due date." },
+        { status: 400 }
+      );
+    }
+
+    let fileDetails: any = {};
+
+    if (file) {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+
+      if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
+        return NextResponse.json(
+          { success: false, message: "This file type is not allowed." },
+          { status: 400 }
+        );
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { success: false, message: "Maximum file size is 10 MB." },
+          { status: 400 }
+        );
+      }
+
+      // File ko MongoDB GridFS mein store karo.
+      bucket = await getGridFSBucket();
+
+      const uploadStream = bucket.openUploadStream(file.name, {
+        metadata: {
+          teacherId: String(teacher._id),
+          purpose: "teacher-assignment",
+        },
+        contentType: file.type || "application/octet-stream",
+      });
+
+      uploadedFileId = uploadStream.id as ObjectId;
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      await new Promise<void>((resolve, reject) => {
+        uploadStream.once("finish", () => resolve());
+        uploadStream.once("error", reject);
+        uploadStream.end(buffer);
+      });
+
+      fileDetails = {
+        fileId: uploadedFileId,
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+      };
+    }
+
     const content = await TeacherContent.create({
       teacher: teacher._id,
       type,
       title: title.trim(),
       description: description.trim(),
       dueDate: dueDate || null,
+      ...fileDetails,
     });
+
+    createdContentId = content._id;
 
     const students = await User.find({
       role: "student",
@@ -141,17 +253,12 @@ export async function POST(req: NextRequest) {
       semester: teacher.semester,
     }).select("_id name email");
 
-    let notificationType = "general";
-
-    if (
-      type === "assignment" ||
-      type === "homework" ||
-      type === "practical"
-    ) {
-      notificationType = "assignment";
-    } else if (type === "announcement") {
-      notificationType = "announcement";
-    }
+    const notificationType =
+      type === "announcement"
+        ? "announcement"
+        : ["assignment", "homework", "practical"].includes(type)
+        ? "assignment"
+        : "general";
 
     if (students.length > 0) {
       await Notification.insertMany(
@@ -164,7 +271,7 @@ export async function POST(req: NextRequest) {
         }))
       );
 
-      const contentType =
+      const taskType =
         type === "assignment"
           ? "Assignment"
           : type === "homework"
@@ -182,7 +289,7 @@ export async function POST(req: NextRequest) {
             studentName: student.name,
             senderName: teacher.name,
             senderRole: "teacher",
-            taskType: contentType,
+            taskType,
             title: title.trim(),
             description: description.trim(),
             dueDate: dueDate || null,
@@ -202,10 +309,29 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error("Teacher content POST error:", error);
+
+    // Content creation fail hone par uploaded file clean up karo.
+    if (createdContentId) {
+      try {
+        await TeacherContent.deleteOne({ _id: createdContentId });
+      } catch (cleanupError) {
+        console.error("Content cleanup error:", cleanupError);
+      }
+    }
+
+    if (uploadedFileId && bucket) {
+      try {
+        await bucket.delete(uploadedFileId);
+      } catch (cleanupError) {
+        console.error("File cleanup error:", cleanupError);
+      }
+    }
+
     return NextResponse.json(
       {
         success: false,
-        message: error.message,
+        message: error.message || "Unable to publish content.",
       },
       { status: 500 }
     );
@@ -214,65 +340,55 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const token = await getToken({
-      req,
-      secret: process.env.AUTH_SECRET,
-    });
+    const auth = await getTeacherToken(req);
+    if (auth.error) return auth.error;
 
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if ((token as any).role !== "teacher") {
-      return NextResponse.json(
-        { success: false, message: "Teacher access only" },
-        { status: 403 }
-      );
-    }
+    await connectDB();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
-    if (!id) {
+    if (!id || !/^[a-f\d]{24}$/i.test(id)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Content ID is required.",
-        },
+        { success: false, message: "Valid content ID is required." },
         { status: 400 }
       );
     }
 
-    await connectDB();
-
-    const deleted = await TeacherContent.findOneAndDelete({
+    const content = await TeacherContent.findOne({
       _id: id,
-      teacher: (token as any).id,
+      teacher: (auth.token as any).id,
     });
 
-    if (!deleted) {
+    if (!content) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Content not found.",
-        },
+        { success: false, message: "Content not found." },
         { status: 404 }
       );
     }
+
+    // File ko delete karne se pehle ownership verify ho chuki hai.
+    if (content.fileId) {
+      const bucket = await getGridFSBucket();
+
+      try {
+        await bucket.delete(new ObjectId(String(content.fileId)));
+      } catch (error: any) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
+
+    await TeacherContent.deleteOne({ _id: content._id });
 
     return NextResponse.json({
       success: true,
       message: "Content deleted successfully.",
     });
   } catch (error: any) {
+    console.error("Teacher content DELETE error:", error);
+
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
+      { success: false, message: "Unable to delete content." },
       { status: 500 }
     );
   }
@@ -280,41 +396,47 @@ export async function DELETE(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const token = await getToken({
-      req,
-      secret: process.env.AUTH_SECRET,
-    });
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if ((token as any).role !== "teacher") {
-      return NextResponse.json(
-        { success: false, message: "Teacher access only" },
-        { status: 403 }
-      );
-    }
+    const auth = await getTeacherToken(req);
+    if (auth.error) return auth.error;
 
     const body = await req.json();
 
-    const {
-      id,
-      type,
-      title,
-      description,
-      dueDate,
-    } = body;
+    const { id, type, title, description, dueDate } = body;
 
-    if (!id || !type || !title || !description) {
+    if (
+      !id ||
+      !/^[a-f\d]{24}$/i.test(id) ||
+      !type ||
+      !title?.trim() ||
+      !description?.trim()
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "ID, type, title and description are required.",
+          message: "Valid ID, type, title and description are required.",
         },
+        { status: 400 }
+      );
+    }
+
+    const allowedContentTypes = [
+      "announcement",
+      "assignment",
+      "homework",
+      "practical",
+      "class-info",
+    ];
+
+    if (!allowedContentTypes.includes(type)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid content type." },
+        { status: 400 }
+      );
+    }
+
+    if (dueDate && Number.isNaN(Date.parse(dueDate))) {
+      return NextResponse.json(
+        { success: false, message: "Invalid due date." },
         { status: 400 }
       );
     }
@@ -324,7 +446,7 @@ export async function PUT(req: NextRequest) {
     const content = await TeacherContent.findOneAndUpdate(
       {
         _id: id,
-        teacher: (token as any).id,
+        teacher: (auth.token as any).id,
       },
       {
         type,
@@ -332,17 +454,12 @@ export async function PUT(req: NextRequest) {
         description: description.trim(),
         dueDate: dueDate || null,
       },
-      {
-        new: true,
-      }
+      { new: true, runValidators: true }
     );
 
     if (!content) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Content not found.",
-        },
+        { success: false, message: "Content not found." },
         { status: 404 }
       );
     }
@@ -353,11 +470,10 @@ export async function PUT(req: NextRequest) {
       content,
     });
   } catch (error: any) {
+    console.error("Teacher content PUT error:", error);
+
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
+      { success: false, message: "Unable to update content." },
       { status: 500 }
     );
   }

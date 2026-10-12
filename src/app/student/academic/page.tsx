@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Navbar from "@/components/dashboard/Navbar";
 
+
 interface Content {
   _id: string;
   type: string;
@@ -11,11 +12,16 @@ interface Content {
   description: string;
   dueDate?: string | null;
   createdAt: string;
+  fileId?: string | null;
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
   teacher?: {
     name: string;
     subject?: string;
   };
 }
+
 
 export default function StudentAcademicPage() {
   const [contents, setContents] = useState<Content[]>([]);
@@ -133,6 +139,38 @@ export default function StudentAcademicPage() {
                   <p className="text-gray-600 mt-3 whitespace-pre-wrap">
                     {item.description}
                   </p>
+                  
+{item.fileId && item.fileName && (
+  <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+    <p className="font-semibold text-blue-800">
+      📎 Attached File
+    </p>
+
+    <p className="mt-2 text-gray-700 break-all">
+      {item.fileName}
+    </p>
+
+    <div className="mt-3 flex flex-wrap gap-3">
+      <a
+        href={`/api/teacher/content/download?id=${encodeURIComponent(item._id)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+      >
+        View File
+      </a>
+
+      <a
+        href={`/api/teacher/content/download?id=${encodeURIComponent(item._id)}`}
+        download={item.fileName}
+        className="rounded-lg border border-blue-600 px-4 py-2 text-blue-700 hover:bg-blue-100"
+      >
+        Download
+      </a>
+    </div>
+  </div>
+)}
+
 
                   <div className="flex flex-wrap gap-6 mt-5 text-sm text-gray-500">
 

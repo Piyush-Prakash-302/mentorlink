@@ -39,6 +39,7 @@ async function canChat(userId: string, otherUserId: string) {
   return false;
 }
 
+// GET CHAT MESSAGES
 export async function GET(req: NextRequest) {
   try {
     const token = await getAuth(req);
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const currentUserId = String((token as any).id);
     const { searchParams } = new URL(req.url);
     const otherUserId = searchParams.get("userId");
 
@@ -60,49 +62,64 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const allowed = await canChat(
-      String((token as any).id),
-      otherUserId
-    );
+    await connectDB();
+
+    const allowed = await canChat(currentUserId, otherUserId);
 
     if (!allowed) {
       return NextResponse.json(
         {
           success: false,
-          message: "Chat is allowed only between assigned mentor and mentee.",
+          message:
+            "Chat is allowed only between assigned mentor and mentee.",
         },
         { status: 403 }
       );
     }
 
-    await connectDB();
+    // Mark messages as delivered when the receiver fetches this chat.
+    await ChatMessage.updateMany(
+      {
+        sender: otherUserId,
+        receiver: currentUserId,
+        deliveredAt: null,
+      },
+      {
+        $set: { deliveredAt: new Date() },
+      }
+    );
 
+    // Mark incoming messages as read when the receiver opens/polls this chat.
+    await ChatMessage.updateMany(
+      {
+        sender: otherUserId,
+        receiver: currentUserId,
+        isRead: false,
+      },
+      {
+        $set: {
+          isRead: true,
+          readAt: new Date(),
+        },
+      }
+    );
+
+    // Fetch after updating receipts so the response contains current statuses.
     const messages = await ChatMessage.find({
       $or: [
         {
-          sender: (token as any).id,
+          sender: currentUserId,
           receiver: otherUserId,
         },
         {
           sender: otherUserId,
-          receiver: (token as any).id,
+          receiver: currentUserId,
         },
       ],
     })
       .populate("sender", "name role")
       .populate("receiver", "name role")
       .sort({ createdAt: 1 });
-
-    await ChatMessage.updateMany(
-      {
-        sender: otherUserId,
-        receiver: (token as any).id,
-        isRead: false,
-      },
-      {
-        $set: { isRead: true },
-      }
-    );
 
     return NextResponse.json({
       success: true,
@@ -119,6 +136,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// SEND MESSAGE
 export async function POST(req: NextRequest) {
   try {
     const token = await getAuth(req);
@@ -130,9 +148,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const senderId = String((token as any).id);
     const { receiverId, message } = await req.json();
 
-    if (!receiverId || !message?.trim()) {
+    if (
+      !receiverId ||
+      typeof message !== "string" ||
+      !message.trim()
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -142,27 +165,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const allowed = await canChat(
-      String((token as any).id),
-      receiverId
-    );
+    await connectDB();
+
+    const allowed = await canChat(senderId, String(receiverId));
 
     if (!allowed) {
       return NextResponse.json(
         {
           success: false,
-          message: "You can only chat with your assigned mentor or mentee.",
+          message:
+            "You can only chat with your assigned mentor or mentee.",
         },
         { status: 403 }
       );
     }
 
-    await connectDB();
-
     const chatMessage = await ChatMessage.create({
-      sender: (token as any).id,
+      sender: senderId,
       receiver: receiverId,
       message: message.trim(),
+      isRead: false,
+      deliveredAt: null,
+      readAt: null,
     });
 
     const populatedMessage = await ChatMessage.findById(
