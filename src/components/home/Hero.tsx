@@ -1,51 +1,65 @@
+
+import Image from "next/image";
+import Link from "next/link";
+
 export default function Hero() {
   return (
-    <section className="bg-gradient-to-r from-blue-50 to-indigo-100 py-24">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between">
+    <section className="bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 text-white">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:py-20 md:grid-cols-2 lg:gap-16 lg:py-24">
 
-        {/* Left Side */}
-        <div className="max-w-xl">
-
-          <h1 className="text-5xl font-extrabold text-gray-900 leading-tight">
-            Smart Mentor-Mentee
-            <br />
-            Management Portal
-          </h1>
-
-          <p className="mt-6 text-lg text-gray-600">
-            Manage mentors, students, meetings,
-            assignments and announcements from one
-            centralized platform.
+        {/* Left content */}
+        <div className="max-w-2xl">
+          <p className="inline-block rounded-full border border-blue-300/30 px-4 py-2 text-sm text-blue-200">
+            Smart Academic Collaboration
           </p>
 
-          <div className="mt-8 flex gap-4">
+          <h1 className="mt-7 text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+            Smart Mentor-Mentee
+            <span className="mt-2 block text-blue-400">
+              Management Portal
+            </span>
+          </h1>
 
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
+          <p className="mt-6 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
+            Manage mentors, students, meetings, assignments and
+            announcements from one centralized platform. Stay
+            organized and support academic progress through
+            better communication.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              href="/login"
+              className="rounded-lg bg-blue-600 px-7 py-3.5 font-semibold text-white transition hover:bg-blue-700"
+            >
               Get Started
-            </button>
+            </Link>
 
-            <button className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50">
+            <a
+              href="#features"
+              className="rounded-lg border border-slate-400 px-7 py-3.5 font-semibold text-white transition hover:bg-white/10"
+            >
               Learn More
-            </button>
-
+            </a>
           </div>
 
+          <p className="mt-8 text-sm text-slate-400">
+            Designed for administrators, mentors and students.
+          </p>
         </div>
 
-        {/* Right Side */}
-
-        <div className="mt-12 md:mt-0">
-          <div className="w-[450px] h-[320px] bg-blue-100 rounded-3xl shadow-xl flex items-center justify-center">
-  <div className="text-center">
-    <div className="text-7xl">🎓</div>
-    <h2 className="text-2xl font-bold text-blue-700 mt-4">
-      MentorLink
-    </h2>
-    <p className="text-gray-600">
-      Mentor • Student • Success
-    </p>
-  </div>
-</div>
+        {/* Right side logo image */}
+        <div className="flex justify-center md:justify-end">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+            <Image
+              src="/mentor-connect.png"
+              alt="Mentor Connect CSE - Your Progress Partner"
+              width={640}
+              height={640}
+              priority
+              className="h-auto w-full object-contain"
+            />
+          </div>
         </div>
 
       </div>
