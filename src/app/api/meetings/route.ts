@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { randomUUID } from "crypto";
 import connectDB from "@/lib/mongodb";
-import Meeting from "@/models/Meeting";
+import Meeting from "@/models/meeting";
 import User from "@/models/User";
 import Notification from "@/models/Notification";
 import { sendEmail } from "@/lib/email";

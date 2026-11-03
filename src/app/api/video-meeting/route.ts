@@ -4,7 +4,7 @@ import { getToken } from "next-auth/jwt";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import MentorAssignment from "@/models/MentorAssignment";
-import Meeting from "@/models/Meeting";
+import Meeting from "@/models/meeting";
 import crypto from "crypto";
 
 export async function GET(req: NextRequest) {
